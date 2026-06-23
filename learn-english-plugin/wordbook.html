@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>英语生词本</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="toolbar">
+        <h1>英语生词本</h1>
+        <div class="toolbar-actions">
+          <button id="refresh-btn" type="button">刷新</button>
+          <button id="export-btn" type="button">导出 Markdown</button>
+        </div>
+      </header>
+
+      <p class="hint">
+        添加快捷键（默认 `Alt + Shift + A`）：选中网页中的单词后按快捷键保存。可在
+        Chrome 扩展快捷键页面修改。
+      </p>
+
+      <section class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>单词</th>
+              <th>句子</th>
+            </tr>
+          </thead>
+          <tbody id="wordbook-body"></tbody>
+        </table>
+      </section>
+      <p id="empty-tip" class="empty-tip">还没有生词，去网页里选中单词试试。</p>
+    </main>
+
+    <script src="storage.js"></script>
+    <script src="wordbook.js"></script>
+  </body>
+</html>

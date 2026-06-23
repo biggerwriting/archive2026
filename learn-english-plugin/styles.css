@@ -1,0 +1,106 @@
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f6f8;
+  color: #1f2937;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.hint {
+  margin: 12px 0 16px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.table-wrapper {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.word-cell {
+  width: 24%;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.sentence-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.sentence-list li + li {
+  margin-top: 8px;
+}
+
+.empty-tip {
+  margin-top: 14px;
+  color: #6b7280;
+}
