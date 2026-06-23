@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>历史事件记录系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-left"></div>
+    <div class="bg-orb orb-right"></div>
+    <main class="container">
+      <header class="page-header">
+        <p class="eyebrow">Chronicle Atlas</p>
+        <h1>历史事件档案馆</h1>
+        <p class="subtitle">记录文明转折时刻，按时间、地点、人物和标签快速检索历史脉络。</p>
+      </header>
+
+      <section class="panel">
+        <h2>新增历史事件</h2>
+        <form id="event-form">
+          <div class="grid two-col">
+            <label>
+              时间类型
+              <select name="timeType" required>
+                <option value="ad">公元</option>
+                <option value="bc">公元前</option>
+              </select>
+            </label>
+
+            <label>
+              年份（整数）
+              <input type="number" name="yearValue" placeholder="例如 2025 或 221" required />
+            </label>
+
+            <label>
+              精确日期（可选）
+              <input type="date" name="exactDate" />
+            </label>
+
+            <label>
+              地点
+              <input type="text" name="location" placeholder="请输入地点" required />
+            </label>
+
+            <label>
+              人物
+              <input type="text" name="person" placeholder="请输入人物" required />
+            </label>
+
+            <label>
+              标签（逗号分隔）
+              <input type="text" name="tags" placeholder="政治, 战争, 科技" />
+            </label>
+          </div>
+
+          <label>
+            事件标题
+            <input type="text" name="title" placeholder="请输入事件标题" required />
+          </label>
+
+          <label>
+            事件内容
+            <textarea name="description" rows="4" placeholder="请输入事件详情" required></textarea>
+          </label>
+
+          <fieldset class="source-fieldset">
+            <legend>史料（文字链接）</legend>
+            <p class="hint">可添加文字、图片链接、音频链接、视频链接、文件链接。</p>
+            <div id="source-list"></div>
+            <button class="secondary-btn" type="button" id="add-source-btn">+ 添加一条史料</button>
+          </fieldset>
+
+          <label>
+            上传附件（图片/音频/视频/文件，可多选）
+            <input type="file" name="files" id="files" multiple />
+          </label>
+
+          <div class="form-actions">
+            <button type="submit">提交事件</button>
+            <span id="form-message"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>筛选与搜索</h2>
+        <form id="filter-form" class="grid two-col">
+          <label>
+            起始年份
+            <input type="number" name="startYear" placeholder="-500 / 1900" />
+          </label>
+          <label>
+            结束年份
+            <input type="number" name="endYear" placeholder="2025" />
+          </label>
+          <label>
+            地点
+            <input type="text" name="location" placeholder="模糊匹配地点" />
+          </label>
+          <label>
+            人物
+            <input type="text" name="person" placeholder="模糊匹配人物" />
+          </label>
+          <label>
+            标签
+            <input type="text" name="tag" placeholder="输入单个标签" />
+          </label>
+          <div class="form-actions align-end">
+            <button type="submit">应用筛选</button>
+            <button type="button" id="reset-filter-btn" class="secondary-btn">重置</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="list-heading">
+          <h2>历史事件列表</h2>
+          <span id="result-count" class="result-count">共 0 条</span>
+        </div>
+        <div id="event-list" class="event-list"></div>
+      </section>
+    </main>
+
+    <template id="source-item-template">
+      <div class="source-item">
+        <select class="source-type">
+          <option value="text">文字</option>
+          <option value="image">图片链接</option>
+          <option value="audio">音频链接</option>
+          <option value="video">视频链接</option>
+          <option value="file">文件链接</option>
+        </select>
+        <input class="source-content" type="text" placeholder="请输入链接或文字内容" />
+        <button type="button" class="danger-btn remove-source-btn">删除</button>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
