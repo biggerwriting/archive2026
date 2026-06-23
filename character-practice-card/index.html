@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>汉字练字卡 · 九宫点阵</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Noto+Serif+SC:wght@400;600&family=Syne:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="masthead">
+      <div class="masthead__badge">练字</div>
+      <div class="masthead__copy">
+        <h1 class="masthead__title">九阵字帖</h1>
+        <p class="masthead__lede">
+          将楷书字形压入 96×96 方格，高精度点阵还原字形，便于对照练习。
+        </p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel panel--controls" aria-label="生成设置">
+        <label class="field">
+          <span class="field__label">输入汉字</span>
+          <textarea
+            id="char-input"
+            class="field__input field__input--area"
+            rows="2"
+            placeholder="例如：永和九年"
+            spellcheck="false"
+          ></textarea>
+        </label>
+
+        <div class="field-row">
+          <label class="field field--grow">
+            <span class="field__label">楷书字体</span>
+            <select id="font-select" class="field__input"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">呈现</span>
+            <select id="mode-select" class="field__input">
+              <option value="grid">方格填充</option>
+              <option value="dots">顶点点阵</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">栅格阈值</span>
+            <input id="threshold-range" class="field__range" type="range" min="8" max="45" value="22" />
+            <span id="threshold-value" class="field__hint">22%</span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="generate-btn" class="btn btn--primary">生成卡片</button>
+          <button type="button" id="download-btn" class="btn btn--ghost" disabled>打包下载 PNG</button>
+        </div>
+        <p id="status-line" class="status" role="status"></p>
+      </section>
+
+      <section class="panel panel--gallery" aria-label="卡片画廊">
+        <div class="gallery__header">
+          <h2 class="gallery__title">字卡阵列</h2>
+          <span id="card-count" class="gallery__meta">0 张</span>
+        </div>
+        <div id="gallery" class="gallery"></div>
+      </section>
+    </main>
+
+    <div id="lightbox" class="lightbox" hidden>
+      <button type="button" class="lightbox__close" id="lightbox-close" aria-label="关闭预览">×</button>
+      <div class="lightbox__stage" id="lightbox-stage"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
