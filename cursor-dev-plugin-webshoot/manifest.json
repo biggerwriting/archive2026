@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "WebShoot Scroll Capture",
+  "version": "0.1.0",
+  "description": "Capture visible area and full-page scrolling screenshots with preview.",
+  "action": {
+    "default_title": "WebShoot",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

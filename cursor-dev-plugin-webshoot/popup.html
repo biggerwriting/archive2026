@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebShoot</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="popup">
+    <main class="card">
+      <h1>WebShoot</h1>
+      <p class="hint">选择截图模式</p>
+      <button id="visibleBtn" class="btn">截图当前可视区域</button>
+      <button id="fullBtn" class="btn primary">整页滚动截图</button>
+      <button id="exportMdBtn" class="btn">导出当前网页为 Markdown</button>
+      <p id="status" class="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
