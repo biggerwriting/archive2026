@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Outputs
+outputs/
+
+# Temp files
+tmp_*.jpg
+tmp_*.png
+
+# macOS
+.DS_Store
+
+# Models (downloaded by PaddleOCR at runtime)
+inference/
