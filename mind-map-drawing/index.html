@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>脑图展示程序</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="panel">
+        <h1>脑图展示程序</h1>
+        <p class="desc">支持粘贴层级文本并渲染为可交互脑图（# / ## / ### / -）</p>
+
+        <label for="sourceInput">层级文本</label>
+        <textarea id="sourceInput" spellcheck="false"></textarea>
+
+        <div class="actions">
+          <button id="renderBtn">渲染脑图</button>
+          <button id="fitBtn" class="secondary">自适应视图</button>
+          <button id="expandBtn" class="secondary">全部展开</button>
+          <button id="collapseBtn" class="secondary">收起到二级</button>
+        </div>
+
+        <div class="search-wrap">
+          <label for="searchInput">搜索节点</label>
+          <input id="searchInput" placeholder="输入关键词后回车" />
+        </div>
+
+        <p id="status" class="status"></p>
+      </aside>
+
+      <main class="viewer">
+        <svg id="mindmap" aria-label="mind map canvas"></svg>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="./app.js"></script>
+  </body>
+  </html>

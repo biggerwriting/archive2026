@@ -1,0 +1,178 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --line: #d7e1ee;
+  --text: #1f2a3d;
+  --muted: #66758f;
+  --primary: #2e6ef7;
+  --highlight: #ffb020;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans CJK SC",
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  min-height: 100vh;
+}
+
+.panel {
+  padding: 18px;
+  border-right: 1px solid var(--line);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+textarea {
+  width: 100%;
+  min-height: 42vh;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 10px;
+  line-height: 1.5;
+  font-size: 13px;
+  background: #fbfdff;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #fff;
+  color: var(--primary);
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+.search-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.status {
+  margin: 0;
+  min-height: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.viewer {
+  position: relative;
+  overflow: hidden;
+}
+
+#mindmap {
+  width: 100%;
+  height: 100vh;
+  display: block;
+  background: radial-gradient(circle at top left, #ffffff, #f5f8ff);
+}
+
+.link {
+  fill: none;
+  stroke: #9fb3d4;
+  stroke-width: 1.5;
+}
+
+.node rect {
+  fill: #fff;
+  stroke: #92a6c7;
+  stroke-width: 1.2;
+  rx: 8;
+  ry: 8;
+}
+
+.node text {
+  font-size: 12px;
+  dominant-baseline: middle;
+  text-anchor: middle;
+  fill: #24344f;
+  pointer-events: none;
+}
+
+.node.root rect {
+  fill: #2e6ef7;
+  stroke: #2e6ef7;
+}
+
+.node.root text {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.node.highlight rect {
+  stroke: var(--highlight);
+  stroke-width: 2.5;
+}
+
+.node.collapsible rect {
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  #mindmap {
+    height: 65vh;
+  }
+}
