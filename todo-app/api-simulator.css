@@ -1,0 +1,140 @@
+:root {
+  --bg-start: #edf6ff;
+  --bg-end: #d9edff;
+  --card-bg: #ffffff;
+  --primary: #2f80ed;
+  --primary-dark: #1f6fdd;
+  --soft: #ecf4ff;
+  --text: #1f2d3d;
+  --subtle: #61738a;
+  --border: #d5e7fb;
+  --shadow: 0 12px 34px rgba(47, 128, 237, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: linear-gradient(155deg, var(--bg-start), var(--bg-end));
+}
+
+.simulator-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.simulator-card {
+  width: min(100%, 760px);
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: clamp(18px, 2.5vw, 28px);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+header p {
+  margin: 8px 0 0;
+  color: var(--subtle);
+}
+
+.panel {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  color: #fff;
+  background: var(--primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(47, 128, 237, 0.28);
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+button.secondary {
+  background: #5a8fde;
+}
+
+.metrics {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.metrics span {
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #315c90;
+  font-size: 0.9rem;
+}
+
+.log-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.log-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 10px 12px;
+  line-height: 1.45;
+  color: #33465c;
+}
+
+.log-item strong {
+  color: #1f2d3d;
+}
+
+.log-item.warning {
+  background: #fff7e8;
+  border-color: #ffe2b2;
+  color: #7e5a12;
+}
+
+@media (max-width: 520px) {
+  .simulator-page {
+    padding: 14px;
+  }
+
+  .simulator-card {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .panel button {
+    width: 100%;
+  }
+}

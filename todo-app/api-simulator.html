@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API 调用模拟器</title>
+    <link rel="stylesheet" href="api-simulator.css" />
+  </head>
+  <body>
+    <main class="simulator-page">
+      <section class="simulator-card">
+        <header>
+          <h1>API 调用模拟器</h1>
+          <p>单次耗时 10-40 秒，调用频率限制为每分钟最多 30 次。</p>
+        </header>
+
+        <section class="panel">
+          <button id="call-once-btn" type="button">发起 1 次调用</button>
+          <button id="call-ten-btn" type="button" class="secondary">并发发起 10 次</button>
+        </section>
+
+        <section class="metrics" aria-live="polite">
+          <span id="status-text">状态：空闲</span>
+          <span id="active-count">处理中：0</span>
+          <span id="queued-count">排队中：0</span>
+          <span id="recent-count">60 秒内调用数：0 / 30</span>
+        </section>
+
+        <ol id="log-list" class="log-list" aria-label="调用日志"></ol>
+      </section>
+    </main>
+
+    <script src="api-simulator.js"></script>
+  </body>
+</html>
