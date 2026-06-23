@@ -1,0 +1,188 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f9;
+  color: #1f2937;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 28px 20px 36px;
+}
+
+.top-header h1 {
+  margin: 0;
+  font-size: 34px;
+}
+
+.top-header p {
+  margin: 10px 0 0;
+  color: #4b5563;
+}
+
+.upload-panel {
+  margin-top: 22px;
+  border: 2px dashed #c8d0de;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.upload-label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.upload-label strong {
+  font-size: 18px;
+}
+
+.upload-label span {
+  color: #6b7280;
+}
+
+.upload-panel input {
+  display: block;
+  margin: 16px auto 0;
+}
+
+.status {
+  margin: 14px 0 0;
+  color: #334155;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.result-panel {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #374151;
+}
+
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.mode-switch,
+.action-buttons {
+  display: inline-flex;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid #c5d0df;
+  background: #ffffff;
+  color: #111827;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button.active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+}
+
+.preview-panel {
+  background: #ffffff;
+  border: 1px solid #d6deea;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.preview-panel header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.preview-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.preview-panel header span {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.preview-content {
+  margin-top: 12px;
+  border: 1px solid #d6deea;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.preview-content iframe {
+  display: block;
+  width: 100%;
+  min-height: 560px;
+  border: none;
+  background: #ffffff;
+}
+
+.preview-panel details {
+  margin-top: 12px;
+}
+
+.preview-panel summary {
+  cursor: pointer;
+  color: #1d4ed8;
+}
+
+.preview-panel pre {
+  margin-top: 10px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding-inline: 14px;
+  }
+
+  .top-header h1 {
+    font-size: 28px;
+  }
+
+  .preview-content iframe {
+    min-height: 420px;
+  }
+}
