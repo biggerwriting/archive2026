@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mock Timeline</title>
+  </head>
+  <body>
+    <nav></nav>
+    <main id="main"></main>
+
+    <script>
+      // ── Accent colors per type ──
+      const ACCENTS = {
+        note: "#00e5ff",
+        idea: "#b57bff",
+        event: "#fbbf24",
+        image: "#a3e635",
+      };
+      const SEED = [
+        {
+          id: 2,
+          title: "Idea: ambient music player",
+          date: "2025-10-18",
+          type: "idea",
+          content:
+            'Build a minimal web player that layers generative ambient soundscapes. Controls: just a volume knob and a "shift" button that morphs the mood. No playlists, no skipping.',
+          image: "",
+        },
+      ];
+
+      // ── State ──
+      let entries = SEED;
+      let nextId = Math.max(...entries.map((e) => e.id), 0) + 1;
+      let activeFilter = "all";
+      let editingId = null;
+      let viewingId = null;
+
+      function render() {
+        const main = document.getElementById("main");
+        const filtered = entries;
+
+        const sorted = [...filtered].sort(
+          (a, b) => new Date(b.date) - new Date(a.date),
+        );
+
+        if (!sorted.length) {
+          main.innerHTML = `
+            <div class="empty">
+                <div class="empty-icon">◌</div>
+                <p>No entries yet. Add your first one.</p>
+            </div>`;
+          return;
+        }
+
+        // Group by year
+        const byYear = {};
+        sorted.forEach((e) => {
+          const y = e.date.slice(0, 4);
+          (byYear[y] = byYear[y] || []).push(e);
+        });
+
+        let html = "";
+        Object.keys(byYear)
+          .sort((a, b) => b - a)
+          .forEach((year) => {
+            html += `<div class="year-label">${year}</div>`;
+            html += `<div class="timeline">`;
+            byYear[year].forEach((e) => {
+              const accent = ACCENTS[e.type] || ACCENTS.note;
+              const imgHtml = e.image
+                ? `<img class="card-img" src="${e.image}" alt="${e.title}" loading="lazy" />`
+                : "";
+              const dateStr = new Date(e.date + "T00:00:00").toLocaleDateString(
+                "zh-CN",
+                {
+                  month: "short",
+                  day: "numeric",
+                },
+              );
+
+              html += `
+        <div class="tl-item" data-id="${e.id}" style="--accent:${accent}">
+          <div class="card" onclick="openView(${e.id})">
+            ${imgHtml}
+            <div class="card-body">
+              <div class="card-meta">
+                <span class="tag">${e.type}</span>
+                <span class="card-date">${dateStr}</span>
+              </div>
+              <div class="card-title">${e.title}</div>
+              <div class="card-content">${e.content}</div>
+            </div>
+          </div>
+        </div>`;
+            });
+            html += `</div>`;
+          });
+
+        main.innerHTML = html;
+      }
+      // ── Init ──
+      render();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timeline — History Mark</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0d11;
+      --surface:   #13161d;
+      --surface2:  #1a1e28;
+      --border:    #252a38;
+      --text:      #e2e6f0;
+      --muted:     #6b7390;
+      --cyan:      #00e5ff;
+      --purple:    #b57bff;
+      --lime:      #a3e635;
+      --amber:     #fbbf24;
+      --coral:     #ff6b6b;
+      --pink:      #f472b6;
+      --line-w:    2px;
+      --dot-size:  14px;
+      --card-r:    14px;
+      --transition: 0.2s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Mesh background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0,229,255,.05) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(181,123,255,.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(1rem, 4vw, 2.5rem);
+      height: 60px;
+      background: rgba(11,13,17,.8);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-actions { display: flex; gap: .75rem; align-items: center; }
+
+    /* ── Filter pills ── */
+    .filters {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .3rem .75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .filter-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .filter-btn.active { background: var(--cyan); border-color: var(--cyan); color: #000; }
+
+    /* ── Add button ── */
+    .btn-add {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .4rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--cyan);
+      background: rgba(0,229,255,.08);
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-add:hover {
+      background: rgba(0,229,255,.18);
+      box-shadow: 0 0 16px rgba(0,229,255,.2);
+    }
+
+    /* ── Main layout ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 2rem);
+    }
+
+    /* ── Year separator ── */
+    .year-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(255,255,255,.08);
+      margin-bottom: 2rem;
+      margin-left: 2.5rem;
+      user-select: none;
+    }
+
+    /* ── Timeline wrapper ── */
+    .timeline {
+      position: relative;
+      padding-left: 2.5rem;
+    }
+
+    /* vertical line */
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: calc(var(--dot-size) / 2 - var(--line-w) / 2);
+      top: 0;
+      bottom: 0;
+      width: var(--line-w);
+      background: linear-gradient(to bottom, var(--cyan), var(--purple), var(--cyan));
+      background-size: 100% 300%;
+      animation: linescroll 8s linear infinite;
+      opacity: .35;
+      border-radius: 999px;
+    }
+
+    @keyframes linescroll {
+      0%   { background-position: 0 0%; }
+      100% { background-position: 0 300%; }
+    }
+
+    /* ── Timeline item ── */
+    .tl-item {
+      position: relative;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .4s ease, transform .4s ease;
+    }
+    .tl-item.visible { opacity: 1; transform: translateY(0); }
+
+    /* dot */
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: calc(-2.5rem + var(--dot-size) / 2 - var(--dot-size) / 2);
+      top: 1.25rem;
+      width: var(--dot-size);
+      height: var(--dot-size);
+      border-radius: 50%;
+      border: 2px solid var(--surface);
+      background: var(--accent, var(--cyan));
+      box-shadow: 0 0 10px var(--accent, var(--cyan));
+      transition: transform var(--transition), box-shadow var(--transition);
+      z-index: 2;
+    }
+    .tl-item:hover::before {
+      transform: scale(1.4);
+      box-shadow: 0 0 20px var(--accent, var(--cyan));
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-r);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent, var(--cyan));
+      box-shadow: 0 8px 40px rgba(0,0,0,.5), 0 0 0 1px var(--accent, var(--cyan)), 0 0 30px rgba(0,229,255,.08);
+    }
+
+    /* image area */
+    .card-img {
+      width: 100%;
+      aspect-ratio: 16/7;
+      object-fit: cover;
+      display: block;
+      filter: brightness(.9) saturate(.9);
+      transition: filter var(--transition);
+    }
+    .card:hover .card-img { filter: brightness(1) saturate(1.1); }
+
+    /* card body */
+    .card-body { padding: 1.1rem 1.25rem 1.25rem; }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: .6rem;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .2rem .55rem;
+      border-radius: 4px;
+      background: rgba(255,255,255,.06);
+      color: var(--accent, var(--cyan));
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .card-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    .card-title {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: .5rem;
+      color: var(--text);
+    }
+
+    .card-content {
+      font-size: .9rem;
+      color: var(--muted);
+      line-height: 1.65;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* bottom accent bar */
+    .card::after {
+      content: '';
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent, var(--cyan)), transparent);
+      margin-top: -1px;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .card:hover::after { opacity: 1; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px) scale(.97);
+      transition: transform .25s ease;
+      padding: 2rem;
+    }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .modal h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .4rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .95rem;
+      padding: .65rem .9rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0,229,255,.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group select option { background: var(--surface2); }
+
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+
+    .btn-cancel {
+      padding: .55rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+
+    .btn-save {
+      padding: .55rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity var(--transition), box-shadow var(--transition);
+    }
+    .btn-save:hover {
+      opacity: .9;
+      box-shadow: 0 4px 20px rgba(0,229,255,.3);
+    }
+
+    /* ── View modal (read-only) ── */
+    .view-modal-img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .view-modal-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .2rem .6rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: .75rem;
+    }
+    .view-modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    .view-modal-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .view-modal-content {
+      font-size: .95rem;
+      color: #c0c8d8;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: .4; }
+    .empty p { font-size: .95rem; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .filters { display: none; }
+      .nav-logo { font-size: .85rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+  <span class="nav-logo">// history-mark</span>
+  <div class="nav-actions">
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="note">Note</button>
+      <button class="filter-btn" data-filter="image">Image</button>
+      <button class="filter-btn" data-filter="idea">Idea</button>
+      <button class="filter-btn" data-filter="event">Event</button>
+    </div>
+    <button class="btn-add" id="openAdd">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Add
+    </button>
+  </div>
+</nav>
+
+<main id="main"></main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2 id="modalTitle">// New Entry</h2>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="fTitle" placeholder="Entry title..." />
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="fDate" />
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="fType">
+        <option value="note">Note</option>
+        <option value="idea">Idea</option>
+        <option value="event">Event</option>
+        <option value="image">Image</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Content</label>
+      <textarea id="fContent" placeholder="Write something..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Image URL (optional)</label>
+      <input type="url" id="fImage" placeholder="https://..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="closeAdd">Cancel</button>
+      <button class="btn-save" id="saveEntry">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <img id="vmImg" class="view-modal-img" src="" alt="" />
+    <div id="vmTag" class="view-modal-tag"></div>
+    <div id="vmTitle" class="view-modal-title"></div>
+    <div id="vmDate" class="view-modal-date"></div>
+    <div id="vmContent" class="view-modal-content"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="deleteEntry">Delete</button>
+      <button class="btn-cancel" id="closeView">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Accent colors per type ──
+const ACCENTS = {
+  note:  '#00e5ff',
+  idea:  '#b57bff',
+  event: '#fbbf24',
+  image: '#a3e635',
+};
+
+// ── Seed data ──
+const SEED = [
+  {
+    id: 1,
+    title: 'First light in Kyoto',
+    date: '2025-11-03',
+    type: 'image',
+    content: 'Early morning walk through Fushimi Inari. The torii gates were almost empty at 5am — pure stillness.',
+    image: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=900&q=80',
+  },
+  {
+    id: 2,
+    title: 'Idea: ambient music player',
+    date: '2025-10-18',
+    type: 'idea',
+    content: 'Build a minimal web player that layers generative ambient soundscapes. Controls: just a volume knob and a "shift" button that morphs the mood. No playlists, no skipping.',
+    image: '',
+  },
+  {
+    id: 3,
+    title: 'Ship the redesign',
+    date: '2025-09-27',
+    type: 'event',
+    content: 'Finally pushed the new dashboard to prod. Six weeks of iteration. The dark theme landed really well with users — 94% positive feedback in the first 48 hours.',
+    image: '',
+  },
+  {
+    id: 4,
+    title: 'Notes on Deep Work',
+    date: '2025-09-10',
+    type: 'note',
+    content: 'Cal Newport\'s core argument: ability to focus without distraction is becoming rare and valuable simultaneously. Schedule deep work blocks like meetings. Embrace boredom — don\'t reach for your phone at every idle moment.',
+    image: '',
+  },
+  {
+    id: 5,
+    title: 'Sunset over the bay',
+    date: '2025-08-22',
+    type: 'image',
+    content: 'Golden hour from the rooftop. The kind of light that makes everything feel temporary.',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&q=80',
+  },
+  {
+    id: 6,
+    title: 'Idea: CSS-only dark mode toggle',
+    date: '2025-07-14',
+    type: 'idea',
+    content: 'Use the :has() selector + a hidden checkbox to toggle a data-theme attribute on <html> without any JS. Surprisingly clean. Works in all modern browsers as of mid-2025.',
+    image: '',
+  },
+  {
+    id: 7,
+    title: 'Conference: FrontendConf 2025',
+    date: '2025-06-05',
+    type: 'event',
+    content: 'Spoke about design systems at scale. Best talk of the day was on CSS container queries — the future of truly component-scoped responsive design.',
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80',
+  },
+  {
+    id: 8,
+    title: 'On creative constraints',
+    date: '2025-05-30',
+    type: 'note',
+    content: 'Constraints force creativity. The best designs often come from tight briefs. When everything is possible, nothing is interesting. Pick a box and think inside it — then break exactly one wall.',
+    image: '',
+  },
+];
+
+// ── State ──
+let entries = JSON.parse(localStorage.getItem('timeline_entries') || 'null') || SEED;
+let nextId   = Math.max(...entries.map(e => e.id), 0) + 1;
+let activeFilter = 'all';
+let editingId    = null;
+let viewingId    = null;
+
+function save() {
+  localStorage.setItem('timeline_entries', JSON.stringify(entries));
+}
+
+// ── Render ──
+function render() {
+  const main = document.getElementById('main');
+  const filtered = activeFilter === 'all'
+    ? entries
+    : entries.filter(e => e.type === activeFilter);
+
+  // Sort newest first
+  const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!sorted.length) {
+    main.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">◌</div>
+        <p>No entries yet. Add your first one.</p>
+      </div>`;
+    return;
+  }
+
+  // Group by year
+  const byYear = {};
+  sorted.forEach(e => {
+    const y = e.date.slice(0, 4);
+    (byYear[y] = byYear[y] || []).push(e);
+  });
+
+  let html = '';
+  Object.keys(byYear).sort((a, b) => b - a).forEach(year => {
+    html += `<div class="year-label">${year}</div>`;
+    html += `<div class="timeline">`;
+    byYear[year].forEach(e => {
+      const accent  = ACCENTS[e.type] || ACCENTS.note;
+      const imgHtml = e.image
+        ? `<img class="card-img" src="${e.image}" alt="${e.title}" loading="lazy" />`
+        : '';
+      const dateStr = new Date(e.date + 'T00:00:00').toLocaleDateString('zh-CN', {
+        month: 'short', day: 'numeric',
+      });
+
+      html += `
+        <div class="tl-item" data-id="${e.id}" style="--accent:${accent}">
+          <div class="card" onclick="openView(${e.id})">
+            ${imgHtml}
+            <div class="card-body">
+              <div class="card-meta">
+                <span class="tag">${e.type}</span>
+                <span class="card-date">${dateStr}</span>
+              </div>
+              <div class="card-title">${e.title}</div>
+              <div class="card-content">${e.content}</div>
+            </div>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  main.innerHTML = html;
+
+  // Intersection observer for reveal
+  const items = main.querySelectorAll('.tl-item');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 60);
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  items.forEach(el => io.observe(el));
+}
+
+// ── Filter buttons ──
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  render();
+});
+
+// ── Add modal ──
+document.getElementById('openAdd').addEventListener('click', () => {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '// New Entry';
+  document.getElementById('fTitle').value   = '';
+  document.getElementById('fDate').value    = new Date().toISOString().slice(0, 10);
+  document.getElementById('fType').value    = 'note';
+  document.getElementById('fContent').value = '';
+  document.getElementById('fImage').value   = '';
+  document.getElementById('addModal').classList.add('open');
+});
+document.getElementById('closeAdd').addEventListener('click', () => {
+  document.getElementById('addModal').classList.remove('open');
+});
+document.getElementById('addModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+// ── Save entry ──
+document.getElementById('saveEntry').addEventListener('click', () => {
+  const title   = document.getElementById('fTitle').value.trim();
+  const date    = document.getElementById('fDate').value;
+  const type    = document.getElementById('fType').value;
+  const content = document.getElementById('fContent').value.trim();
+  const image   = document.getElementById('fImage').value.trim();
+
+  if (!title || !date) {
+    document.getElementById('fTitle').style.borderColor = '#ff6b6b';
+    return;
+  }
+  document.getElementById('fTitle').style.borderColor = '';
+
+  if (editingId !== null) {
+    const idx = entries.findIndex(e => e.id === editingId);
+    if (idx !== -1) entries[idx] = { id: editingId, title, date, type, content, image };
+  } else {
+    entries.push({ id: nextId++, title, date, type, content, image });
+  }
+
+  save();
+  render();
+  document.getElementById('addModal').classList.remove('open');
+});
+
+// ── View modal ──
+function openView(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  viewingId = id;
+
+  const accent = ACCENTS[e.type] || ACCENTS.note;
+  const img = document.getElementById('vmImg');
+  if (e.image) {
+    img.src = e.image;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+
+  const tagEl = document.getElementById('vmTag');
+  tagEl.textContent = e.type;
+  tagEl.style.background = accent + '22';
+  tagEl.style.color = accent;
+  tagEl.style.border = `1px solid ${accent}44`;
+
+  document.getElementById('vmTitle').textContent   = e.title;
+  document.getElementById('vmDate').textContent    = new Date(e.date + 'T00:00:00').toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('vmContent').textContent = e.content;
+
+  document.getElementById('viewModal').classList.add('open');
+}
+
+document.getElementById('closeView').addEventListener('click', () => {
+  document.getElementById('viewModal').classList.remove('open');
+});
+document.getElementById('viewModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+document.getElementById('deleteEntry').addEventListener('click', () => {
+  if (viewingId === null) return;
+  entries = entries.filter(e => e.id !== viewingId);
+  save();
+  render();
+  document.getElementById('viewModal').classList.remove('open');
+});
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('addModal').classList.remove('open');
+    document.getElementById('viewModal').classList.remove('open');
+  }
+  if (e.key === 'n' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName === 'BODY') {
+    document.getElementById('openAdd').click();
+  }
+});
+
+// ── Init ──
+render();
+</script>
+</body>
+</html>

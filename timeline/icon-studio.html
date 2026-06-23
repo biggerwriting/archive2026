@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Icon Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d11;--surface:#13161d;--surface2:#1a1e28;--surface3:#21263a;
+  --border:#252a38;--border2:#2e3448;
+  --text:#e2e6f0;--muted:#6b7390;--muted2:#4a5168;
+  --cyan:#00e5ff;--purple:#b57bff;--lime:#a3e635;--amber:#fbbf24;--coral:#ff6b6b;--pink:#f472b6;
+  --r:10px;--tr:0.18s ease;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(0,229,255,.04) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 85% 100%,rgba(181,123,255,.04) 0%,transparent 60%);pointer-events:none;z-index:0}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(1rem,3vw,2rem);height:56px;background:rgba(11,13,17,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.logo{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;letter-spacing:.05em;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-right{display:flex;gap:.5rem;align-items:center}
+.chip{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.28rem .7rem;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:var(--tr)}
+.chip:hover{border-color:var(--cyan);color:var(--cyan)}
+.chip.active{background:var(--cyan);border-color:var(--cyan);color:#000}
+.btn{display:flex;align-items:center;gap:.35rem;padding:.35rem .9rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;cursor:pointer;transition:var(--tr)}
+.btn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.12)}
+.btn-primary{border-color:var(--cyan);background:rgba(0,229,255,.1);color:var(--cyan)}
+.btn-primary:hover{background:rgba(0,229,255,.2);box-shadow:0 0 20px rgba(0,229,255,.2)}
+
+/* LAYOUT */
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 56px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr;grid-template-rows:1fr auto}}
+
+/* GRID PANEL */
+.grid-panel{overflow-y:auto;padding:clamp(1.25rem,3vw,2rem)}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.section-title{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.search-wrap{position:relative}
+.search-wrap input{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:.4rem 2rem .4rem .75rem;width:180px;outline:none;transition:var(--tr)}
+.search-wrap input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.08)}
+.search-wrap svg{position:absolute;right:.55rem;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.6rem}
+.icon-card{display:flex;flex-direction:column;align-items:center;gap:.55rem;padding:.9rem .5rem .7rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:transform var(--tr),border-color var(--tr),box-shadow var(--tr);user-select:none}
+.icon-card:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:0 4px 24px rgba(0,0,0,.4),0 0 0 1px var(--cyan),0 0 16px rgba(0,229,255,.08)}
+.icon-card.selected{border-color:var(--cyan);background:rgba(0,229,255,.06);box-shadow:0 0 0 1px var(--cyan),0 0 20px rgba(0,229,255,.1)}
+.icon-card svg{transition:filter var(--tr)}
+.icon-card:hover svg{filter:drop-shadow(0 0 6px var(--cyan))}
+.icon-card.selected svg{filter:drop-shadow(0 0 8px var(--cyan))}
+.icon-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;color:var(--muted);letter-spacing:.04em;text-align:center;line-height:1.2}
+
+/* EDITOR PANEL */
+.editor-panel{border-left:1px solid var(--border);background:var(--surface);overflow-y:auto;display:flex;flex-direction:column}
+@media(max-width:900px){.editor-panel{border-left:none;border-top:1px solid var(--border);max-height:380px}}
+.editor-header{padding:1.1rem 1.25rem .75rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.editor-header h2{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.15rem}
+.editor-header .icon-name{font-size:1rem;font-weight:600;color:var(--text)}
+
+.preview-box{display:flex;align-items:center;justify-content:center;padding:2rem;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface2);position:relative;overflow:hidden}
+.preview-box::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,var(--border2) 1px,transparent 1px);background-size:20px 20px;opacity:.5}
+.preview-svg-wrap{position:relative;z-index:1;transition:filter var(--tr)}
+
+.controls{padding:1.1rem 1.25rem;flex:1}
+.ctrl-group{margin-bottom:1.1rem}
+.ctrl-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;display:flex;justify-content:space-between;align-items:center}
+.ctrl-label span{color:var(--text);font-size:.75rem;font-weight:600;letter-spacing:0}
+
+/* color swatch row */
+.swatch-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.swatch{width:26px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:transform var(--tr),border-color var(--tr)}
+.swatch:hover{transform:scale(1.15)}
+.swatch.active{border-color:#fff;box-shadow:0 0 8px currentColor}
+.color-input-wrap{display:flex;gap:.5rem;align-items:center}
+.color-input-wrap input[type=color]{width:36px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;padding:2px}
+.color-input-wrap input[type=text]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:.3rem .6rem;outline:none;transition:var(--tr)}
+.color-input-wrap input[type=text]:focus{border-color:var(--cyan)}
+
+/* slider */
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px rgba(0,229,255,.5);transition:transform var(--tr)}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+/* stroke style */
+.stroke-opts{display:flex;gap:.4rem}
+.stroke-opt{padding:.3rem .7rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem;cursor:pointer;transition:var(--tr)}
+.stroke-opt:hover{border-color:var(--cyan);color:var(--cyan)}
+.stroke-opt.active{border-color:var(--cyan);background:rgba(0,229,255,.1);color:var(--cyan)}
+
+/* size pills */
+.size-opts{display:flex;gap:.4rem}
+.size-opt{padding:.3rem .65rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.72rem;cursor:pointer;transition:var(--tr)}
+.size-opt:hover{border-color:var(--purple);color:var(--purple)}
+.size-opt.active{border-color:var(--purple);background:rgba(181,123,255,.1);color:var(--purple)}
+
+/* export row */
+.export-row{padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.5rem;flex-shrink:0}
+.export-row .btn{flex:1;justify-content:center}
+
+/* code snippet */
+.code-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem .9rem;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);line-height:1.6;word-break:break-all;white-space:pre-wrap;max-height:100px;overflow-y:auto;cursor:pointer;transition:border-color var(--tr)}
+.code-box:hover{border-color:var(--cyan)}
+.code-copy-hint{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted2);margin-top:.3rem;text-align:right}
+
+/* toast */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--cyan);border-radius:8px;padding:.55rem 1.25rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--cyan);box-shadow:0 4px 24px rgba(0,0,0,.5),0 0 20px rgba(0,229,255,.15);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">// icon-studio</span>
+  <div class="nav-right">
+    <div id="filterChips" style="display:flex;gap:.4rem">
+      <button class="chip active" data-cat="all">All</button>
+      <button class="chip" data-cat="ui">UI</button>
+      <button class="chip" data-cat="media">Media</button>
+      <button class="chip" data-cat="file">File</button>
+      <button class="chip" data-cat="comm">Comm</button>
+      <button class="chip" data-cat="nav">Nav</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- LEFT: icon grid -->
+  <div class="grid-panel">
+    <div class="section-head">
+      <span class="section-title" id="countLabel">48 icons</span>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search..." />
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="#6b7390" stroke-width="1.5"/><path d="M9 9l2.5 2.5" stroke="#6b7390" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="icon-grid" id="iconGrid"></div>
+  </div>
+
+  <!-- RIGHT: editor -->
+  <div class="editor-panel">
+    <div class="editor-header">
+      <h2>Editor</h2>
+      <div class="icon-name" id="editorName">Select an icon</div>
+    </div>
+
+    <div class="preview-box">
+      <div class="preview-svg-wrap" id="previewSvg">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6b7390" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+      </div>
+    </div>
+
+    <div class="controls">
+      <!-- Color -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Color <span id="colorVal">#00e5ff</span></div>
+        <div class="swatch-row" id="swatchRow"></div>
+        <div class="color-input-wrap">
+          <input type="color" id="colorPicker" value="#00e5ff" />
+          <input type="text" id="colorHex" value="#00e5ff" maxlength="7" placeholder="#rrggbb" />
+        </div>
+      </div>
+
+      <!-- Stroke width -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Stroke Width <span id="strokeVal">1.5</span></div>
+        <input type="range" id="strokeSlider" min="0.5" max="4" step="0.25" value="1.5" />
+      </div>
+
+      <!-- Size -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Preview Size</div>
+        <div class="size-opts">
+          <button class="size-opt" data-size="32">32</button>
+          <button class="size-opt active" data-size="64">64</button>
+          <button class="size-opt" data-size="96">96</button>
+          <button class="size-opt" data-size="128">128</button>
+        </div>
+      </div>
+
+      <!-- Stroke linecap -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Linecap</div>
+        <div class="stroke-opts">
+          <button class="stroke-opt active" data-cap="round">Round</button>
+          <button class="stroke-opt" data-cap="square">Square</button>
+          <button class="stroke-opt" data-cap="butt">Butt</button>
+        </div>
+      </div>
+
+      <!-- Fill toggle -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">Fill Mode</div>
+        <div class="stroke-opts">
+          <button class="stroke-opt active" data-fill="none">Stroke</button>
+          <button class="stroke-opt" data-fill="color">Fill</button>
+          <button class="stroke-opt" data-fill="both">Both</button>
+        </div>
+      </div>
+
+      <!-- SVG code -->
+      <div class="ctrl-group">
+        <div class="ctrl-label">SVG Code</div>
+        <div class="code-box" id="codeBox" onclick="copyCode()" title="Click to copy"></div>
+        <div class="code-copy-hint">click to copy</div>
+      </div>
+    </div>
+
+    <div class="export-row">
+      <button class="btn btn-primary" onclick="exportSVG()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        SVG
+      </button>
+      <button class="btn" onclick="exportPNG(32)">PNG 32</button>
+      <button class="btn" onclick="exportPNG(64)">PNG 64</button>
+      <button class="btn" onclick="exportPNG(256)">PNG 256</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Icon library ──────────────────────────────────────────────
+const ICONS = [
+  // UI
+  {id:'home',name:'Home',cat:'ui',path:'M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z M9 21V12h6v9'},
+  {id:'settings',name:'Settings',cat:'ui',path:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z'},
+  {id:'user',name:'User',cat:'ui',path:'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z'},
+  {id:'search',name:'Search',cat:'ui',path:'M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z'},
+  {id:'bell',name:'Bell',cat:'ui',path:'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0'},
+  {id:'heart',name:'Heart',cat:'ui',path:'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z'},
+  {id:'star',name:'Star',cat:'ui',path:'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'},
+  {id:'bookmark',name:'Bookmark',cat:'ui',path:'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z'},
+  {id:'trash',name:'Trash',cat:'ui',path:'M3 6h18 M8 6V4h8v2 M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6'},
+  {id:'edit',name:'Edit',cat:'ui',path:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z'},
+  {id:'plus',name:'Plus',cat:'ui',path:'M12 5v14 M5 12h14'},
+  {id:'minus',name:'Minus',cat:'ui',path:'M5 12h14'},
+  {id:'close',name:'Close',cat:'ui',path:'M18 6L6 18 M6 6l12 12'},
+  {id:'check',name:'Check',cat:'ui',path:'M20 6L9 17l-5-5'},
+  {id:'lock',name:'Lock',cat:'ui',path:'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M12 17a1 1 0 100-2 1 1 0 000 2z M8 11V7a4 4 0 018 0v4'},
+  {id:'eye',name:'Eye',cat:'ui',path:'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 15a3 3 0 100-6 3 3 0 000 6z'},
+  // Media
+  {id:'play',name:'Play',cat:'media',path:'M5 3l14 9-14 9V3z'},
+  {id:'pause',name:'Pause',cat:'media',path:'M6 4h4v16H6z M14 4h4v16h-4z'},
+  {id:'stop',name:'Stop',cat:'media',path:'M4 4h16v16H4z'},
+  {id:'volume',name:'Volume',cat:'media',path:'M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 010 14.14 M15.54 8.46a5 5 0 010 7.07'},
+  {id:'mic',name:'Mic',cat:'media',path:'M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z M19 10v2a7 7 0 01-14 0v-2 M12 19v4 M8 23h8'},
+  {id:'camera',name:'Camera',cat:'media',path:'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M12 17a4 4 0 100-8 4 4 0 000 8z'},
+  {id:'image',name:'Image',cat:'media',path:'M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3z M21 15l-5-5L5 21'},
+  {id:'music',name:'Music',cat:'media',path:'M9 18V5l12-2v13 M9 18a3 3 0 11-3-3 3 3 0 013 3z M21 16a3 3 0 11-3-3 3 3 0 013 3z'},
+  // File
+  {id:'file',name:'File',cat:'file',path:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8'},
+  {id:'folder',name:'Folder',cat:'file',path:'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z'},
+  {id:'upload',name:'Upload',cat:'file',path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M17 8l-5-5-5 5 M12 3v12'},
+  {id:'download',name:'Download',cat:'file',path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4 M7 10l5 5 5-5 M12 15V3'},
+  {id:'link',name:'Link',cat:'file',path:'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71 M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71'},
+  {id:'copy',name:'Copy',cat:'file',path:'M20 9H11a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-9a2 2 0 00-2-2z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1'},
+  {id:'code',name:'Code',cat:'file',path:'M16 18l6-6-6-6 M8 6l-6 6 6 6'},
+  // Comm
+  {id:'mail',name:'Mail',cat:'comm',path:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6'},
+  {id:'message',name:'Message',cat:'comm',path:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'},
+  {id:'phone',name:'Phone',cat:'comm',path:'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z'},
+  {id:'share',name:'Share',cat:'comm',path:'M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8 M16 6l-4-4-4 4 M12 2v13'},
+  {id:'send',name:'Send',cat:'comm',path:'M22 2L11 13 M22 2L15 22l-4-9-9-4 22-7z'},
+  {id:'globe',name:'Globe',cat:'comm',path:'M12 22a10 10 0 100-20 10 10 0 000 20z M2 12h20 M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z'},
+  {id:'wifi',name:'Wifi',cat:'comm',path:'M5 12.55a11 11 0 0114.08 0 M1.42 9a16 16 0 0121.16 0 M8.53 16.11a6 6 0 016.95 0 M12 20h.01'},
+  // Nav
+  {id:'arrow-up',name:'Arrow Up',cat:'nav',path:'M12 19V5 M5 12l7-7 7 7'},
+  {id:'arrow-down',name:'Arrow Down',cat:'nav',path:'M12 5v14 M19 12l-7 7-7-7'},
+  {id:'arrow-left',name:'Arrow Left',cat:'nav',path:'M19 12H5 M12 19l-7-7 7-7'},
+  {id:'arrow-right',name:'Arrow Right',cat:'nav',path:'M5 12h14 M12 5l7 7-7 7'},
+  {id:'chevron-up',name:'Chev Up',cat:'nav',path:'M18 15l-6-6-6 6'},
+  {id:'chevron-down',name:'Chev Down',cat:'nav',path:'M6 9l6 6 6-6'},
+  {id:'menu',name:'Menu',cat:'nav',path:'M3 12h18 M3 6h18 M3 18h18'},
+  {id:'more-h',name:'More H',cat:'nav',path:'M12 13a1 1 0 100-2 1 1 0 000 2z M19 13a1 1 0 100-2 1 1 0 000 2z M5 13a1 1 0 100-2 1 1 0 000 2z'},
+  {id:'more-v',name:'More V',cat:'nav',path:'M12 13a1 1 0 100-2 1 1 0 000 2z M12 6a1 1 0 100-2 1 1 0 000 2z M12 20a1 1 0 100-2 1 1 0 000 2z'},
+  {id:'external',name:'External',cat:'nav',path:'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3'},
+  {id:'refresh',name:'Refresh',cat:'nav',path:'M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15'},
+  {id:'zap',name:'Zap',cat:'nav',path:'M13 2L3 14h9l-1 8 10-12h-9l1-8z'},
+];
+
+// ── Accent swatches ──
+const SWATCHES = ['#00e5ff','#b57bff','#a3e635','#fbbf24','#ff6b6b','#f472b6','#ffffff','#6b7390'];
+
+// ── State ──
+let state = {
+  selectedId: null,
+  color: '#00e5ff',
+  strokeWidth: 1.5,
+  size: 64,
+  linecap: 'round',
+  fill: 'none',
+  cat: 'all',
+  search: '',
+};
+
+// ── Build swatch row ──
+function buildSwatches() {
+  const row = document.getElementById('swatchRow');
+  row.innerHTML = SWATCHES.map(c =>
+    `<div class="swatch${c===state.color?' active':''}" style="background:${c}" data-color="${c}" onclick="setColor('${c}')"></div>`
+  ).join('');
+}
+
+// ── Render icon grid ──
+function renderGrid() {
+  const grid = document.getElementById('iconGrid');
+  const q = state.search.toLowerCase();
+  const list = ICONS.filter(ic =>
+    (state.cat === 'all' || ic.cat === state.cat) &&
+    (!q || ic.name.toLowerCase().includes(q) || ic.id.includes(q))
+  );
+  document.getElementById('countLabel').textContent = `${list.length} icons`;
+
+  grid.innerHTML = list.map(ic => {
+    const sel = ic.id === state.selectedId;
+    return `
+    <div class="icon-card${sel?' selected':''}" data-id="${ic.id}" onclick="selectIcon('${ic.id}')">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="${sel ? state.color : '#6b7390'}"
+        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        ${pathsToElements(ic.path)}
+      </svg>
+      <span class="icon-label">${ic.name}</span>
+    </div>`;
+  }).join('');
+}
+
+function pathsToElements(pathStr) {
+  return pathStr.split(' M').map((seg,i) => `<path d="${i===0?seg:'M'+seg}" />`).join('');
+}
+
+// ── Select icon ──
+function selectIcon(id) {
+  state.selectedId = id;
+  renderGrid();
+  updateEditor();
+}
+
+// ── Update editor panel ──
+function updateEditor() {
+  const ic = ICONS.find(x => x.id === state.selectedId);
+  if (!ic) return;
+
+  document.getElementById('editorName').textContent = ic.name;
+
+  const fillAttr  = state.fill === 'none'  ? 'none' :
+                    state.fill === 'fill'   ? state.color :
+                    state.color;
+  const strokeAttr = state.fill === 'fill' ? 'none' : state.color;
+
+  const svgStr = buildSVG(ic, state.size, state.color, state.strokeWidth, state.linecap, state.fill);
+  document.getElementById('previewSvg').innerHTML = svgStr;
+  document.getElementById('codeBox').textContent  = buildSVG(ic, 24, state.color, state.strokeWidth, state.linecap, state.fill);
+}
+
+function buildSVG(ic, size, color, sw, cap, fillMode) {
+  const fill   = fillMode === 'none'  ? 'none' :
+                 fillMode === 'color' ? color  : color;
+  const stroke = fillMode === 'color' ? 'none' : color;
+  const opacity = fillMode === 'both' ? '0.2' : '1';
+  const paths = ic.path.split(' M').map((seg, i) => {
+    const d = i === 0 ? seg : 'M' + seg;
+    const f = fillMode === 'both' ? color : fill;
+    const fo = fillMode === 'both' ? '0.18' : '1';
+    return `  <path d="${d}" fill="${f}" fill-opacity="${fo}" />`;
+  }).join('\n');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="${cap}" stroke-linejoin="round">
+${paths}
+</svg>`;
+}
+
+// ── Color ──
+function setColor(hex) {
+  state.color = hex;
+  document.getElementById('colorPicker').value = hex;
+  document.getElementById('colorHex').value    = hex;
+  document.getElementById('colorVal').textContent = hex;
+  buildSwatches();
+  renderGrid();
+  updateEditor();
+}
+
+document.getElementById('colorPicker').addEventListener('input', e => setColor(e.target.value));
+document.getElementById('colorHex').addEventListener('input', e => {
+  const v = e.target.value;
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) setColor(v);
+});
+
+// ── Stroke slider ──
+document.getElementById('strokeSlider').addEventListener('input', e => {
+  state.strokeWidth = parseFloat(e.target.value);
+  document.getElementById('strokeVal').textContent = state.strokeWidth;
+  updateEditor();
+});
+
+// ── Size pills ──
+document.querySelectorAll('.size-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.size = parseInt(btn.dataset.size);
+    updateEditor();
+  });
+});
+
+// ── Linecap ──
+document.querySelectorAll('.stroke-opt[data-cap]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.stroke-opt[data-cap]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.linecap = btn.dataset.cap;
+    updateEditor();
+  });
+});
+
+// ── Fill mode ──
+document.querySelectorAll('.stroke-opt[data-fill]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.stroke-opt[data-fill]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.fill = btn.dataset.fill;
+    updateEditor();
+  });
+});
+
+// ── Filter chips ──
+document.getElementById('filterChips').addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.cat = btn.dataset.cat;
+  renderGrid();
+});
+
+// ── Search ──
+document.getElementById('searchInput').addEventListener('input', e => {
+  state.search = e.target.value;
+  renderGrid();
+});
+
+// ── Copy code ──
+function copyCode() {
+  const ic = ICONS.find(x => x.id === state.selectedId);
+  if (!ic) return;
+  const code = buildSVG(ic, 24, state.color, state.strokeWidth, state.linecap, state.fill);
+  navigator.clipboard.writeText(code).then(() => showToast('SVG code copied!'));
+}
+
+// ── Export SVG ──
+function exportSVG() {
+  const ic = ICONS.find(x => x.id === state.selectedId);
+  if (!ic) { showToast('Select an icon first'); return; }
+  const code = buildSVG(ic, 24, state.color, state.strokeWidth, state.linecap, state.fill);
+  const blob = new Blob([code], {type:'image/svg+xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${ic.id}.svg`;
+  a.click();
+  showToast(`Exported ${ic.id}.svg`);
+}
+
+// ── Export PNG ──
+function exportPNG(size) {
+  const ic = ICONS.find(x => x.id === state.selectedId);
+  if (!ic) { showToast('Select an icon first'); return; }
+  const svgStr = buildSVG(ic, size, state.color, state.strokeWidth, state.linecap, state.fill);
+  const img = new Image();
+  const blob = new Blob([svgStr], {type:'image/svg+xml'});
+  const url  = URL.createObjectURL(blob);
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `${ic.id}-${size}.png`;
+    a.click();
+    showToast(`Exported ${ic.id}-${size}.png`);
+  };
+  img.src = url;
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Init ──
+buildSwatches();
+renderGrid();
+// Auto-select first icon
+selectIcon(ICONS[0].id);
+</script>
+</body>
+</html>
