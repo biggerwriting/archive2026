@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>批量选图下载</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1 class="title">当前页图片</h1>
+      <p id="status" class="status">正在加载…</p>
+    </header>
+
+    <div class="toolbar" id="toolbar" hidden>
+      <p class="hint">多选时将打包为一个 ZIP（需授权访问图片地址）；单张仍为直接下载。</p>
+      <label class="folder-label">
+        ZIP 文件名（不含 .zip）
+        <input type="text" id="folderName" class="folder-input" maxlength="120" placeholder="PageImages_20250324" />
+      </label>
+      <div class="btn-row">
+        <button type="button" id="btnRefresh" class="btn secondary">刷新</button>
+        <button type="button" id="btnSelectAll" class="btn secondary">全选</button>
+        <button type="button" id="btnSelectNone" class="btn secondary">全不选</button>
+        <button type="button" id="btnDownload" class="btn primary">下载选中</button>
+      </div>
+    </div>
+
+    <ul id="list" class="list" hidden></ul>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

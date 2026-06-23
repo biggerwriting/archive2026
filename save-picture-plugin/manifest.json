@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "当前页批量选图下载",
+  "version": "1.0.0",
+  "description": "收集当前页图片并勾选下载；多选时打包为一个 ZIP。单张仍直接下载。",
+  "permissions": ["activeTab", "scripting", "downloads"],
+  "optional_host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "批量选图下载"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
