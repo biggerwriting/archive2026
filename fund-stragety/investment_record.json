@@ -1,0 +1,141 @@
+[
+    {
+
+        "name": "微银行",
+        "code": "10000",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "50000",
+                "date": "2025-07-30"
+            },
+            {
+                "opt": "buyin",
+                "money": "37500",
+                "date": "2025-08-05"
+            },
+            {
+                "opt": "buyin",
+                "money": "10000",
+                "date": "2025-08-14"
+            },
+            {
+                "opt": "buyin",
+                "money": "4981",
+                "date": "2025-08-15"
+            },
+            {
+                "opt": "buyin",
+                "money": "9952.37",
+                "date": "2025-08-26"
+            },
+            {
+                "opt": "buyin",
+                "money": "610.18",
+                "date": "2025-08-26"
+            },
+            {
+                "opt": "buyin",
+                "money": "14981",
+                "date": "2025-09-15"
+            },
+            {
+                "opt": "buyin",
+                "money": "13324.58",
+                "date": "2025-10-19"
+            },
+            {
+                "opt": "buyin",
+                "money": "10902.7",
+                "date": "2025-11-17"
+            },
+            {
+                "opt": "buyin",
+                "money": "9000",
+                "date": "2026-01-12"
+            }
+        ],
+        "currentValue": 162403.14,
+        "date": "2026-01-14"
+    },
+    {
+        "name": "半年鑫债券",
+        "code": "0001",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "1000",
+                "date": "2025-09-18"
+            },
+            {
+                "opt": "sellout",
+                "money": "100",
+                "date": "2025-10-18"
+            }
+        ],
+        "currentValue": 1100,
+        "date": "2026-01-14"
+    },
+    {
+        "name": "超级成长股",
+        "code": "0002",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "5000",
+                "date": "2025-06-01"
+            }
+        ],
+        "currentValue": 8000,
+        "date": "2026-01-14"
+    },
+    {
+        "name": "倒霉基金",
+        "code": "0003",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "2000",
+                "date": "2025-01-01"
+            },
+            {
+                "opt": "buyin",
+                "money": "1000",
+                "date": "2025-06-01"
+            }
+        ],
+        "currentValue": 2500,
+        "date": "2026-01-14"
+    },
+    {
+        "name": "理想基金",
+        "code": "0004",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "1000",
+                "date": "2025-01-01"
+            }
+        ],
+        "currentValue": 1100,
+        "date": "2026-01-01"
+    },
+    {
+        "name": "理想基金5",
+        "code": "0005",
+        "operation": [
+            {
+                "opt": "buyin",
+                "money": "1000",
+                "date": "2025-01-01"
+            },
+            {
+                "opt": "sellout",
+                "money": "1100",
+                "date": "2025-06-01"
+            }
+        ],
+        "currentValue": 0,
+        "date": "2026-01-01"
+    }
+]
