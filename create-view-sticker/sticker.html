@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SceneBoard — 造景贴纸</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Variables ──────────────────────────────────────────── */
+    :root {
+      --bg:        #09090e;
+      --surface:   #0d0d16;
+      --panel:     #10101a;
+      --elevated:  #17172400;
+      --border:    #1e1e2e;
+      --border2:   #28284000;
+      --cyan:      #00d4ff;
+      --purple:    #a855f7;
+      --text:      #e2e2ef;
+      --muted:     #7070a0;
+      --dim:       #40405a;
+      --topbar-h:  48px;
+      --lib-h:     172px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Topbar ─────────────────────────────────────────────── */
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 4px;
+    }
+    .logo-icon { font-size: 17px; color: var(--cyan); text-shadow: 0 0 12px var(--cyan); }
+    .logo-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -.3px;
+    }
+    .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: .5px; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+
+    .sep { flex: 1; }
+
+    .status-tag {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #00d4ff12;
+      border: 1px solid #00d4ff30;
+      border-radius: 4px;
+      color: var(--cyan);
+      font-size: 11px;
+    }
+    .status-tag.visible { display: flex; }
+
+    .topbar-btns { display: flex; gap: 6px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 5px;
+      border: none;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: #1e1e30; color: var(--text); }
+    .btn-ghost:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-danger {
+      background: transparent;
+      color: #fb7185;
+      border: 1px solid #fb718530;
+    }
+    .btn-danger:hover { background: #3d1a1f; border-color: #fb7185; }
+    .btn-danger:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--cyan);
+      color: #000;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #33deff; box-shadow: 0 0 16px #00d4ff44; }
+
+    /* ─── Canvas Area ────────────────────────────────────────── */
+    .canvas-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background: var(--bg);
+      /* soft radial glow behind canvas */
+      background-image: radial-gradient(ellipse 800px 600px at 50% 45%, #0d1a2a 0%, #09090e 70%);
+    }
+
+    /* canvas-stage sizes itself to the (scaled) canvas */
+    #canvas-stage {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    #canvas-wrapper {
+      transform-origin: top left;
+      /* checkerboard for transparent bg */
+      background-image:
+        linear-gradient(45deg, #1a1a2e 25%, transparent 25%),
+        linear-gradient(-45deg,#1a1a2e 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1a1a2e 75%),
+        linear-gradient(-45deg,transparent 75%, #1a1a2e 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-color: #0e0e1a;
+      box-shadow: 0 0 0 1px #28284040, 0 12px 60px #00000090, 0 0 120px #00000060;
+    }
+
+    /* Drag-over highlight */
+    #canvas-wrapper.drag-over {
+      box-shadow: 0 0 0 2px var(--cyan), 0 0 40px #00d4ff33, 0 12px 60px #00000090;
+    }
+
+    /* ─── Library Panel ──────────────────────────────────────── */
+    .library {
+      height: var(--lib-h);
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .library-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px 6px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .library-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .library-count {
+      font-size: 10px;
+      color: var(--cyan);
+      margin-left: 2px;
+    }
+
+    .library-scroll {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 12px;
+      scrollbar-width: thin;
+      scrollbar-color: #28283a transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .library-scroll::-webkit-scrollbar { height: 4px; }
+    .library-scroll::-webkit-scrollbar-thumb { background: #28283a; border-radius: 2px; }
+
+    .lib-item {
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(45deg,#1a1a2e 25%,transparent 25%),
+        linear-gradient(-45deg,#1a1a2e 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,#1a1a2e 75%),
+        linear-gradient(-45deg,transparent 75%,#1a1a2e 75%),
+        #0e0e1a;
+      background-size: 8px 8px;
+      background-position: 0 0,0 4px,4px -4px,-4px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      transition: all .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .lib-item:hover {
+      border-color: var(--cyan);
+      transform: translateY(-3px) scale(1.06);
+      box-shadow: 0 8px 24px #00000060, 0 0 12px #00d4ff22;
+    }
+    .lib-item:active { cursor: grabbing; transform: scale(.95); }
+    .lib-item img {
+      max-width: 72px;
+      max-height: 72px;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+    }
+    /* Hover badge */
+    .lib-item::after {
+      content: '+';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: var(--cyan);
+      background: #09090ecc;
+      opacity: 0;
+      transition: opacity .15s;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+    }
+    .lib-item:hover::after { opacity: 1; }
+
+    /* ─── Canvas controls overlay ────────────────────────────── */
+    .zoom-bar {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      display: flex;
+      gap: 4px;
+      background: #10101aee;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px;
+      backdrop-filter: blur(8px);
+    }
+    .zoom-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .12s;
+    }
+    .zoom-btn:hover { background: #1e1e30; color: var(--cyan); }
+    .zoom-label {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-icon">◈</div>
+      <div class="logo-text">
+        <span class="logo-name">SceneBoard</span>
+        <span class="logo-sub">造景贴纸</span>
+      </div>
+    </div>
+
+    <div class="status-tag" id="status-tag">
+      <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>
+      <span id="status-text">已选中</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="topbar-btns">
+      <button class="btn btn-danger" id="btn-delete" disabled title="删除选中 (Del)">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M5 3V2h2v1M4 3l.4 7h3.2L8 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        删除
+      </button>
+      <button class="btn btn-ghost" id="btn-clear" title="清空画布">清空</button>
+      <button class="btn btn-primary" id="btn-export">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        导出
+      </button>
+    </div>
+  </header>
+
+  <!-- Canvas Area -->
+  <main class="canvas-area" id="canvas-area">
+    <div id="canvas-stage">
+      <div id="canvas-wrapper">
+        <canvas id="main-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div class="zoom-bar">
+      <button class="zoom-btn" id="btn-zoom-out">−</button>
+      <span class="zoom-label" id="zoom-label">100%</span>
+      <button class="zoom-btn" id="btn-zoom-in">+</button>
+      <button class="zoom-btn" id="btn-zoom-fit" title="适合屏幕" style="font-size:11px; width:auto; padding:0 6px;">适合</button>
+    </div>
+  </main>
+
+  <!-- Library -->
+  <section class="library">
+    <div class="library-header">
+      <span class="library-label">物品库</span>
+      <span class="library-count" id="lib-count">— 件</span>
+    </div>
+    <div class="library-scroll" id="library-scroll"></div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script>
+  (() => {
+    // ── Config ──────────────────────────────────────────────────
+    const BG_SRC     = 'data/bg-removebg-preview.png';
+    const BG_W = 442, BG_H = 564;        // 背景图原始尺寸
+    const BG_RATIO   = BG_W / BG_H;      // ≈ 0.784 竖版
+    const ITEM_COUNT = 100;
+    const ITEM_PATH  = i => `data/items/item_${String(i).padStart(3,'0')}.png`;
+
+    // ── 计算画布尺寸（充满可用区域，保持背景比例）─────────────
+    // 关键决策：画布 CSS 尺寸 = 画布逻辑尺寸，不使用任何 CSS transform。
+    // 这样 Fabric.js 坐标系与屏幕坐标系完全一致，无需任何补丁。
+    const area = document.getElementById('canvas-area');
+    const pad  = 24;
+    const aw   = area.clientWidth  - pad;
+    const ah   = area.clientHeight - pad;
+    let canvasW, canvasH;
+    if (aw / ah > BG_RATIO) { canvasH = ah; canvasW = Math.round(canvasH * BG_RATIO); }
+    else                     { canvasW = aw; canvasH = Math.round(canvasW / BG_RATIO); }
+
+    // ── Fabric canvas ───────────────────────────────────────────
+    const fc = new fabric.Canvas('main-canvas', {
+      width:  canvasW,
+      height: canvasH,
+      backgroundColor: null,
+      preserveObjectStacking: true,
+    });
+
+    // ── Stage sizing（无 transform，stage 直接等于画布尺寸）────
+    const stage   = document.getElementById('canvas-stage');
+    const wrapper = document.getElementById('canvas-wrapper');
+    stage.style.width  = canvasW + 'px';
+    stage.style.height = canvasH + 'px';
+
+    // ── Zoom 状态（用 Fabric 内置缩放，不动 DOM）──────────────
+    // Fabric setZoom() 修改视口变换矩阵，坐标系始终正确。
+    let viewZoom = 1;
+    const zoomLbl = document.getElementById('zoom-label');
+
+    function applyZoom(z) {
+      viewZoom = z;
+      fc.setZoom(z);
+      fc.setViewportTransform([z, 0, 0, z, 0, 0]);
+      zoomLbl.textContent = Math.round(z * 100) + '%';
+      fc.renderAll();
+    }
+
+    document.getElementById('btn-zoom-in').onclick  = () => applyZoom(Math.min(viewZoom * 1.25, 4));
+    document.getElementById('btn-zoom-out').onclick = () => applyZoom(Math.max(viewZoom / 1.25, 0.25));
+    document.getElementById('btn-zoom-fit').onclick = () => applyZoom(1);
+
+    window.addEventListener('wheel', e => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      applyZoom(Math.min(Math.max(viewZoom * (e.deltaY > 0 ? 0.9 : 1.1), 0.25), 4));
+    }, { passive: false });
+
+    // ── 背景图 ──────────────────────────────────────────────────
+    fabric.Image.fromURL(BG_SRC, img => {
+      fc.setBackgroundImage(img, fc.renderAll.bind(fc), {
+        scaleX: canvasW / img.width,
+        scaleY: canvasH / img.height,
+        originX: 'left', originY: 'top',
+      });
+    }, { crossOrigin: 'anonymous' });
+
+    // ── 选中状态 ────────────────────────────────────────────────
+    const statusTag  = document.getElementById('status-tag');
+    const statusText = document.getElementById('status-text');
+    const btnDelete  = document.getElementById('btn-delete');
+    let selectedObj = null;
+
+    fc.on('selection:created', e => onSelect(e.selected[0]));
+    fc.on('selection:updated', e => onSelect(e.selected[0]));
+    fc.on('selection:cleared', () => onDeselect());
+
+    function onSelect(obj) {
+      selectedObj = obj;
+      btnDelete.disabled = false;
+      statusText.textContent = `${Math.round(obj.width * obj.scaleX)} × ${Math.round(obj.height * obj.scaleY)} px`;
+      statusTag.classList.add('visible');
+    }
+    function onDeselect() {
+      selectedObj = null;
+      btnDelete.disabled = true;
+      statusTag.classList.remove('visible');
+    }
+    function deleteSelected() {
+      if (!selectedObj) return;
+      fc.remove(selectedObj);
+      onDeselect();
+      fc.renderAll();
+    }
+
+    btnDelete.onclick = deleteSelected;
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+
+    // ── 清空 / 导出 ─────────────────────────────────────────────
+    document.getElementById('btn-clear').onclick = () => {
+      if (!confirm('清空所有贴纸？')) return;
+      fc.getObjects().forEach(o => fc.remove(o));
+      onDeselect(); fc.renderAll();
+    };
+
+    document.getElementById('btn-export').onclick = () => {
+      const prev = selectedObj;
+      fc.discardActiveObject();
+      // 导出前临时重置 zoom，确保导出的是完整场景
+      const savedZoom = viewZoom;
+      applyZoom(1);
+      const url = fc.toDataURL({ format: 'png', multiplier: 1 });
+      applyZoom(savedZoom);
+      if (prev) { fc.setActiveObject(prev); fc.renderAll(); }
+      const a = document.createElement('a');
+      a.download = `scene_${Date.now()}.png`;
+      a.href = url; a.click();
+    };
+
+    // ── 将图片放到画布（在鼠标落点处）───────────────────────────
+    // 无 CSS transform：clientX/Y → canvas 坐标只需减去 canvas 的页面偏移。
+    // 如果有 Fabric 内置缩放，还需除以 viewZoom。
+    function addImageAt(src, clientX, clientY) {
+      const rect = fc.upperCanvasEl.getBoundingClientRect();
+      const cx = (clientX - rect.left)  / viewZoom;
+      const cy = (clientY - rect.top)   / viewZoom;
+
+      fabric.Image.fromURL(src, img => {
+        const maxPx = Math.min(canvasW, canvasH) * 0.22; // 约 22% 画布短边
+        const s = Math.min(maxPx / img.width, maxPx / img.height, 1);
+        img.set({
+          left:   cx - (img.width  * s) / 2,
+          top:    cy - (img.height * s) / 2,
+          scaleX: s, scaleY: s,
+        });
+        fc.add(img);
+        fc.setActiveObject(img);
+        fc.renderAll();
+      }, { crossOrigin: 'anonymous' });
+    }
+
+    // ── 拖拽放置 ────────────────────────────────────────────────
+    wrapper.addEventListener('dragover', e => {
+      if (e.dataTransfer.types.includes('text/plain')) {
+        e.preventDefault();
+        wrapper.classList.add('drag-over');
+      }
+    });
+    wrapper.addEventListener('dragleave', e => {
+      if (!wrapper.contains(e.relatedTarget)) wrapper.classList.remove('drag-over');
+    });
+    wrapper.addEventListener('drop', e => {
+      e.preventDefault();
+      wrapper.classList.remove('drag-over');
+      const src = e.dataTransfer.getData('text/plain');
+      if (src) addImageAt(src, e.clientX, e.clientY);
+    });
+
+    // ── 物品库 ──────────────────────────────────────────────────
+    const scroll   = document.getElementById('library-scroll');
+    const libCount = document.getElementById('lib-count');
+    let loaded = 0;
+
+    for (let i = 1; i <= ITEM_COUNT; i++) {
+      const src  = ITEM_PATH(i);
+      const card = document.createElement('div');
+      card.className = 'lib-item';
+      card.draggable = true;
+      card.title = `item_${String(i).padStart(3,'0')}`;
+
+      const img = document.createElement('img');
+      img.src = src; img.alt = ''; img.draggable = false;
+      img.onload  = () => { loaded++; libCount.textContent = `${loaded} 件`; };
+      img.onerror = () => { card.style.display = 'none'; };
+      card.appendChild(img);
+
+      // 拖拽
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', src);
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+
+      // 点击 → 随机放置到画布中央区域
+      card.addEventListener('click', () => {
+        const rect = fc.upperCanvasEl.getBoundingClientRect();
+        const jitter = () => (Math.random() - .5) * canvasW * .3;
+        addImageAt(src,
+          rect.left + canvasW * viewZoom / 2 + jitter() * viewZoom,
+          rect.top  + canvasH * viewZoom / 2 + jitter() * viewZoom
+        );
+      });
+
+      scroll.appendChild(card);
+    }
+  })();
+  </script>
+</body>
+</html>
