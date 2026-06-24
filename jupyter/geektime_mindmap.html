@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>极客时间课程脑图</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      height: 100vh; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Toolbar ── */
+    #toolbar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; height: 48px;
+      background: #1e293b; border-bottom: 1px solid #334155;
+      flex-shrink: 0; z-index: 50;
+    }
+    #toolbar .title { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-right: 8px; }
+    #toolbar .sep { width: 1px; height: 20px; background: #334155; margin: 0 4px; }
+    #toolbar .stats { margin-left: auto; display: flex; gap: 12px; font-size: 12px; color: #64748b; }
+    #toolbar .stats span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 5px 12px; border-radius: 6px; border: none;
+      cursor: pointer; font-size: 12px; font-weight: 500;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .btn-ghost:hover { background: #1e293b; }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .btn-danger:hover { background: #991b1b; }
+
+    /* ── App layout ── */
+    #app { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 240px; flex-shrink: 0;
+      background: #1e293b; border-right: 1px solid #334155;
+      overflow-y: auto; padding: 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    #sidebar .s-section { margin-top: 12px; }
+    #sidebar .s-label {
+      font-size: 10px; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 0 4px; margin-bottom: 6px;
+    }
+    .filter-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 6px; border-radius: 5px; cursor: pointer;
+      font-size: 12px; color: #cbd5e1;
+      transition: background 0.1s;
+    }
+    .filter-row:hover { background: #334155; }
+    .filter-row input[type="checkbox"] { accent-color: #3b82f6; cursor: pointer; }
+    .filter-row .badge {
+      margin-left: auto; font-size: 10px; color: #64748b;
+      background: #334155; padding: 1px 5px; border-radius: 10px;
+    }
+
+    #search-wrap { position: relative; }
+    #search-input {
+      width: 100%; padding: 6px 28px 6px 10px;
+      background: #0f172a; border: 1px solid #334155;
+      border-radius: 6px; color: #e2e8f0; font-size: 12px;
+      outline: none;
+    }
+    #search-input:focus { border-color: #3b82f6; }
+    #search-clear {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      cursor: pointer; color: #64748b; font-size: 14px; display: none;
+    }
+
+    /* ── Canvas ── */
+    #canvas { flex: 1; overflow: hidden; position: relative; }
+    #canvas svg { width: 100%; height: 100%; }
+
+    /* ── D3 nodes ── */
+    .node { cursor: pointer; }
+    .node-cat rect {
+      stroke-width: 2; fill-opacity: 0.15;
+      transition: fill-opacity 0.15s;
+    }
+    .node-cat:hover rect { fill-opacity: 0.3; }
+    .node-cat text { font-size: 12px; font-weight: 600; }
+    .node-course circle { stroke-width: 2; }
+    .node-course text { font-size: 11px; }
+    .node-course.status-deleted text { text-decoration: line-through; opacity: 0.4; }
+    .node-course.dimmed { opacity: 0.2; }
+    .link { fill: none; stroke: #334155; stroke-width: 1.5; }
+    .link-cat { stroke: #475569; stroke-width: 2; }
+
+    /* ── Context menu ── */
+    #context-menu {
+      position: fixed; display: none;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 5px; min-width: 188px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 200;
+    }
+    .cm-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 5px; cursor: pointer;
+      font-size: 13px; color: #e2e8f0;
+      transition: background 0.1s;
+    }
+    .cm-item:hover { background: #334155; }
+    .cm-item.active { color: #60a5fa; }
+    .cm-item.danger { color: #f87171; }
+    .cm-item.muted { color: #64748b; }
+    .cm-sep { height: 1px; background: #334155; margin: 4px 0; }
+    .cm-sub { position: relative; }
+    .cm-sub-menu {
+      display: none; position: absolute;
+      left: 100%; top: -5px;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 5px; min-width: 170px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 201;
+      max-height: 280px; overflow-y: auto;
+    }
+    .cm-sub:hover .cm-sub-menu { display: block; }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position: fixed; display: none; pointer-events: none;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; max-width: 260px; z-index: 300;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    #tooltip .tt-name { font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+    #tooltip .tt-note { color: #94a3b8; font-size: 11px; }
+    #tooltip .tt-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    #tooltip .tt-tag {
+      font-size: 10px; padding: 2px 6px; border-radius: 10px;
+      background: #334155; color: #cbd5e1;
+    }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center; z-index: 400;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 12px; padding: 24px; width: 420px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+    .modal label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px; }
+    .modal input[type="text"], .modal textarea, .modal select {
+      width: 100%; background: #0f172a; border: 1px solid #334155;
+      border-radius: 6px; color: #e2e8f0; padding: 8px 10px;
+      font-size: 13px; outline: none; margin-bottom: 12px;
+    }
+    .modal input[type="text"]:focus,
+    .modal textarea:focus { border-color: #3b82f6; }
+    .modal textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .modal .course-meta { font-size: 12px; color: #64748b; margin-bottom: 12px; }
+
+    /* color swatches for tag editor */
+    .color-swatches { display: flex; gap: 8px; margin-bottom: 12px; }
+    .swatch {
+      width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color 0.15s;
+    }
+    .swatch.selected { border-color: #fff; }
+
+    /* import modal */
+    .import-info { background: #0f172a; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; }
+    .import-info p { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+    .import-info strong { color: #e2e8f0; }
+    .import-mode { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .import-mode label {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 10px; border-radius: 6px; border: 1px solid #334155;
+      cursor: pointer; color: #e2e8f0; font-size: 13px;
+    }
+    .import-mode label:hover { background: #0f172a; }
+    .import-mode label input { margin-top: 2px; accent-color: #3b82f6; }
+    .import-mode .mode-desc { font-size: 11px; color: #64748b; display: block; }
+
+    /* legend */
+    #legend {
+      position: absolute; bottom: 16px; right: 16px;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 10px 14px; font-size: 11px;
+    }
+    #legend .leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    #legend .leg-dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid; }
+    #legend .leg-row:last-child { margin-bottom: 0; }
+
+    /* tag pill in sidebar */
+    .tag-pill {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 6px; border-radius: 5px; font-size: 12px;
+      background: #0f172a; border: 1px solid #334155; margin-bottom: 4px;
+    }
+    .tag-pill .tag-label { display: flex; align-items: center; gap: 5px; }
+    .tag-pill .tag-actions { display: flex; gap: 4px; }
+    .tag-pill .tag-act {
+      background: none; border: none; cursor: pointer;
+      color: #64748b; font-size: 11px; padding: 1px 3px;
+    }
+    .tag-pill .tag-act:hover { color: #e2e8f0; }
+
+    /* custom tag checkbox with color dot */
+    .filter-row .color-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Toolbar ── -->
+<div id="toolbar">
+  <span class="title">🗺️ 极客时间课程脑图</span>
+  <div class="sep"></div>
+  <button class="btn btn-primary" onclick="exportJSON()">📤 导出 JSON</button>
+  <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📥 导入 JSON</button>
+  <input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileImport(event)">
+  <div class="sep"></div>
+  <button class="btn btn-ghost" onclick="expandAll()">展开全部</button>
+  <button class="btn btn-ghost" onclick="collapseAll()">收起全部</button>
+  <button class="btn btn-ghost" onclick="resetView()">⊙ 重置视图</button>
+  <div class="sep"></div>
+  <button class="btn btn-ghost" onclick="clearLocalStorage()" title="清除本地缓存，恢复初始状态">🗑 清除缓存</button>
+  <span id="autosave-indicator" style="font-size:11px;color:#475569;margin-left:4px" title="标注已自动保存到本地">💾 已自动保存</span>
+  <div class="stats" id="stats-bar">
+    <span id="stat-important">⭐ 0</span>
+    <span id="stat-learning">📚 0</span>
+    <span id="stat-done">✅ 0</span>
+    <span id="stat-deleted">🗑️ 0</span>
+    <span id="stat-total" style="color:#94a3b8">共 0</span>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+
+    <!-- Search -->
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="🔍 搜索课程名或备注..." oninput="onSearch(this.value)" onkeydown="if(event.key==='Escape'){clearSearch()}">
+      <span id="search-clear" onclick="clearSearch()">✕</span>
+    </div>
+
+    <!-- Status filters -->
+    <div class="s-section">
+      <div class="s-label">状态过滤</div>
+      <label class="filter-row"><input type="checkbox" id="f-normal" checked onchange="applyFilters()"> ◯ 未标注</label>
+      <label class="filter-row"><input type="checkbox" id="f-important" checked onchange="applyFilters()"> ⭐ 重点</label>
+      <label class="filter-row"><input type="checkbox" id="f-learning" checked onchange="applyFilters()"> 📚 学习中</label>
+      <label class="filter-row"><input type="checkbox" id="f-done" checked onchange="applyFilters()"> ✅ 已完成</label>
+      <label class="filter-row"><input type="checkbox" id="f-deleted" onchange="applyFilters()"> 🗑️ 显示已删除</label>
+    </div>
+
+    <!-- Custom tag filters (populated dynamically) -->
+    <div class="s-section" id="section-tag-filter" style="display:none">
+      <div class="s-label">自定义标签</div>
+      <div id="tag-filter-list"></div>
+    </div>
+
+    <!-- Category filters -->
+    <div class="s-section">
+      <div class="s-label">分类过滤</div>
+      <label class="filter-row">
+        <input type="checkbox" id="f-cat-all" checked onchange="toggleAllCats(this.checked)"> 全选
+      </label>
+      <div id="cat-filter-list"></div>
+    </div>
+
+    <!-- Tag management -->
+    <div class="s-section" id="section-tag-mgmt">
+      <div class="s-label">自定义标签管理</div>
+      <div id="tag-mgmt-list"></div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:4px;font-size:12px" onclick="openTagModal(null, null)">+ 新建标签</button>
+    </div>
+
+    <!-- Reset filters -->
+    <div style="margin-top: auto; padding-top: 12px;">
+      <button class="btn btn-ghost" style="width:100%;font-size:12px" onclick="resetFilters()">重置所有过滤条件</button>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- Canvas -->
+  <div id="canvas">
+    <svg id="svg"></svg>
+    <div id="legend">
+      <div class="leg-row"><div class="leg-dot" style="background:#334155;border-color:#475569"></div> 未标注</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#92400e;border-color:#f59e0b"></div> ⭐ 重点</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#1e3a5f;border-color:#3b82f6"></div> 📚 学习中</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#14532d;border-color:#22c55e"></div> ✅ 已完成</div>
+      <div class="leg-row"><div class="leg-dot" style="background:#450a0a;border-color:#ef4444"></div> 🗑️ 已删除</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ── Context menu ── -->
+<div id="context-menu">
+  <div class="cm-item" id="cm-important" onclick="setStatus('important')">⭐ 标记重点</div>
+  <div class="cm-item" id="cm-learning"  onclick="setStatus('learning')">📚 学习中</div>
+  <div class="cm-item" id="cm-done"      onclick="setStatus('done')">✅ 已完成</div>
+  <div class="cm-sep"></div>
+  <div class="cm-item cm-sub">
+    🏷️ 管理自定义标签 ▸
+    <div class="cm-sub-menu" id="cm-tag-list"></div>
+  </div>
+  <div class="cm-item cm-sub">
+    📂 移动到分类 ▸
+    <div class="cm-sub-menu" id="cm-move-list"></div>
+  </div>
+  <div class="cm-item" onclick="openNoteModal()">📝 添加备注</div>
+  <div class="cm-sep"></div>
+  <div class="cm-item danger" onclick="setStatus('deleted')">🗑️ 删除课程</div>
+  <div class="cm-item muted"  onclick="resetCourse()">↩️ 恢复默认</div>
+</div>
+
+<!-- ── Tooltip ── -->
+<div id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-note" id="tt-note"></div>
+  <div class="tt-tags" id="tt-tags"></div>
+</div>
+
+<!-- ── Note Modal ── -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal">
+    <h3>📝 课程备注</h3>
+    <div class="course-meta" id="note-course-name"></div>
+    <label for="note-textarea">备注内容</label>
+    <textarea id="note-textarea" placeholder="记录学习计划、心得或优先级..."></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-note')">取消</button>
+      <button class="btn btn-primary" onclick="saveNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tag Modal ── -->
+<div class="modal-overlay" id="modal-tag">
+  <div class="modal">
+    <h3 id="tag-modal-title">🏷️ 新建标签</h3>
+    <input type="hidden" id="tag-edit-id">
+    <input type="hidden" id="tag-apply-course">
+    <label for="tag-name-input">标签名称</label>
+    <input type="text" id="tag-name-input" placeholder="例如：下周必看">
+    <label>选择颜色</label>
+    <div class="color-swatches" id="color-swatches"></div>
+    <label for="tag-emoji-input">选择 Emoji（可选）</label>
+    <input type="text" id="tag-emoji-input" placeholder="例如：🔥" maxlength="2">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-tag')">取消</button>
+      <button class="btn btn-primary" onclick="saveTag()">保存标签</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Import Modal ── -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <h3>📥 导入确认</h3>
+    <div class="import-info" id="import-info"></div>
+    <div class="import-mode">
+      <label>
+        <input type="radio" name="import-mode" value="merge" checked>
+        <div>
+          <strong>合并</strong>（推荐）
+          <span class="mode-desc">以导入文件为准；当前有、导入没有的标注保留。</span>
+        </div>
+      </label>
+      <label>
+        <input type="radio" name="import-mode" value="overwrite">
+        <div>
+          <strong>覆盖</strong>
+          <span class="mode-desc">完全替换为导入文件状态，当前所有标注将丢失。</span>
+        </div>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import')">取消</button>
+      <button class="btn btn-primary" onclick="confirmImport()">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// Block A: COURSE_DATA
+// ════════════════════════════════════════════════
+const COURSE_DATA = [
+  { id:'cat_lang', name:'编程语言', icon:'💻', courses:[
+    {id:'lang_01',name:'Tony Bai · Go 语言第一课',group:'Go'},
+    {id:'lang_02',name:'Go 语言核心36讲',group:'Go'},
+    {id:'lang_03',name:'Go 并发编程实战课',group:'Go'},
+    {id:'lang_04',name:'Go 语言项目开发实战',group:'Go'},
+    {id:'lang_05',name:'Java核心技术面试精讲',group:'Java'},
+    {id:'lang_06',name:'Java并发编程实战',group:'Java'},
+    {id:'lang_07',name:'Java性能调优实战',group:'Java'},
+    {id:'lang_08',name:'Java业务开发常见错误100例',group:'Java'},
+    {id:'lang_09',name:'深入剖析 Java 新特性',group:'Java'},
+    {id:'lang_10',name:'深入拆解Java虚拟机',group:'Java'},
+    {id:'lang_11',name:'Python核心技术与实战',group:'Python'},
+    {id:'lang_12',name:'Python自动化办公实战课',group:'Python'},
+    {id:'lang_13',name:'陈天 · Rust 编程第一课',group:'Rust'},
+    {id:'lang_14',name:'深入 C 语言和程序运行原理',group:'C/C++'},
+    {id:'lang_15',name:'罗剑锋的C++实战笔记',group:'C/C++'},
+    {id:'lang_16',name:'现代C++实战30讲',group:'C/C++'},
+    {id:'lang_17',name:'朱涛 · Kotlin 编程第一课',group:'Kotlin'},
+    {id:'lang_18',name:'JavaScript核心原理解析',group:'JS'},
+  ]},
+  { id:'cat_fe', name:'前端 & 移动端', icon:'🖥️', courses:[
+    {id:'fe_01',name:'重学前端',group:'Web'},
+    {id:'fe_02',name:'React Hooks 核心原理与实战',group:'Web'},
+    {id:'fe_03',name:'玩转 Vue 3 全家桶',group:'Web'},
+    {id:'fe_04',name:'图解 Google V8',group:'Web'},
+    {id:'fe_05',name:'WebAssembly入门课',group:'Web'},
+    {id:'fe_06',name:'浏览器工作原理与实践',group:'Web'},
+    {id:'fe_07',name:'React Native 新架构实战课',group:'跨平台'},
+    {id:'fe_08',name:'Flutter核心技术与实战',group:'跨平台'},
+    {id:'fe_09',name:'Android开发高手课',group:'移动原生'},
+    {id:'fe_10',name:'iOS开发高手课',group:'移动原生'},
+  ]},
+  { id:'cat_db', name:'数据库', icon:'🗄️', courses:[
+    {id:'db_01',name:'MySQL 必知必会',group:'关系型'},
+    {id:'db_02',name:'MySQL实战45讲',group:'关系型'},
+    {id:'db_03',name:'SQL必知必会',group:'关系型'},
+    {id:'db_04',name:'Redis核心技术与实战',group:'NoSQL'},
+    {id:'db_05',name:'Redis源码剖析与实战',group:'NoSQL'},
+    {id:'db_06',name:'etcd实战课',group:'分布式存储'},
+    {id:'db_07',name:'分布式数据库30讲',group:'分布式存储'},
+    {id:'db_08',name:'后端存储实战课',group:'分布式存储'},
+  ]},
+  { id:'cat_cloud', name:'分布式 & 云原生', icon:'☁️', courses:[
+    {id:'cloud_01',name:'深入剖析Kubernetes',group:'容器编排'},
+    {id:'cloud_02',name:'容器实战高手课',group:'容器编排'},
+    {id:'cloud_03',name:'Spring Cloud 微服务项目实战',group:'微服务'},
+    {id:'cloud_04',name:'从0开始学微服务',group:'微服务'},
+    {id:'cloud_05',name:'Service Mesh实践指南',group:'Service Mesh'},
+    {id:'cloud_06',name:'Serverless入门课',group:'Serverless'},
+    {id:'cloud_07',name:'深入浅出云计算',group:'云计算'},
+    {id:'cloud_08',name:'分布式技术原理与算法解析',group:'分布式理论'},
+    {id:'cloud_09',name:'分布式协议与算法实战',group:'分布式理论'},
+    {id:'cloud_10',name:'分布式金融架构课',group:'分布式理论'},
+    {id:'cloud_11',name:'深入浅出分布式技术原理',group:'分布式理论'},
+  ]},
+  { id:'cat_arch', name:'架构设计', icon:'🏗️', courses:[
+    {id:'arch_01',name:'从0开始学架构',group:'方法论'},
+    {id:'arch_02',name:'郭东白的架构课',group:'方法论'},
+    {id:'arch_03',name:'许式伟的架构课',group:'方法论'},
+    {id:'arch_04',name:'周志明的软件架构课',group:'方法论'},
+    {id:'arch_05',name:'高并发系统设计40问',group:'高并发'},
+    {id:'arch_06',name:'李智慧 · 高并发架构实战课',group:'高并发'},
+    {id:'arch_07',name:'如何设计一个秒杀系统',group:'实战案例'},
+    {id:'arch_08',name:'手把手带你搭建秒杀系统',group:'实战案例'},
+    {id:'arch_09',name:'架构实战案例解析',group:'实战案例'},
+    {id:'arch_10',name:'DDD实战课',group:'领域建模'},
+    {id:'arch_11',name:'如何落地业务建模',group:'领域建模'},
+  ]},
+  { id:'cat_mw', name:'消息队列 & 中间件', icon:'⚙️', courses:[
+    {id:'mw_01',name:'Kafka核心技术与实战',group:'消息队列'},
+    {id:'mw_02',name:'Kafka核心源码解读',group:'消息队列'},
+    {id:'mw_03',name:'消息队列高手课',group:'消息队列'},
+    {id:'mw_04',name:'即时消息技术剖析与实战',group:'消息队列'},
+    {id:'mw_05',name:'RPC实战与核心原理',group:'RPC'},
+    {id:'mw_06',name:'深入浅出gRPC',group:'RPC'},
+    {id:'mw_07',name:'OpenResty从入门到实战',group:'网关'},
+    {id:'mw_08',name:'深入拆解Tomcat & Jetty',group:'应用服务器'},
+    {id:'mw_09',name:'Spring编程常见错误50例',group:'框架'},
+  ]},
+  { id:'cat_bigdata', name:'大数据', icon:'📊', courses:[
+    {id:'bd_01',name:'从0开始学大数据',group:'平台'},
+    {id:'bd_02',name:'大规模数据处理实战',group:'平台'},
+    {id:'bd_03',name:'大数据经典论文解读',group:'平台'},
+    {id:'bd_04',name:'Spark性能调优实战',group:'Spark'},
+    {id:'bd_05',name:'零基础入门 Spark',group:'Spark'},
+    {id:'bd_06',name:'数据中台实战课',group:'数据分析'},
+    {id:'bd_07',name:'数据分析实战45讲',group:'数据分析'},
+    {id:'bd_08',name:'数据分析思维课',group:'数据分析'},
+  ]},
+  { id:'cat_ai', name:'AI & 机器学习', icon:'🤖', courses:[
+    {id:'ai_01',name:'人工智能基础课',group:'基础'},
+    {id:'ai_02',name:'机器学习40讲',group:'机器学习'},
+    {id:'ai_03',name:'零基础实战机器学习',group:'机器学习'},
+    {id:'ai_04',name:'PyTorch 深度学习实战',group:'深度学习'},
+    {id:'ai_05',name:'AI技术内参',group:'深度学习'},
+    {id:'ai_06',name:'深度学习推荐系统实战',group:'推荐系统'},
+    {id:'ai_07',name:'推荐系统三十六式',group:'推荐系统'},
+    {id:'ai_08',name:'成为AI产品经理',group:'AI产品'},
+  ]},
+  { id:'cat_os', name:'操作系统 & 网络', icon:'🐧', courses:[
+    {id:'os_01',name:'趣谈Linux操作系统',group:'Linux'},
+    {id:'os_02',name:'Linux内核技术实战课',group:'Linux'},
+    {id:'os_03',name:'Linux性能优化实战',group:'Linux'},
+    {id:'os_04',name:'操作系统实战45讲',group:'Linux'},
+    {id:'os_05',name:'eBPF 核心技术与实战',group:'Linux'},
+    {id:'os_06',name:'趣谈网络协议',group:'网络'},
+    {id:'os_07',name:'透视HTTP协议',group:'网络'},
+    {id:'os_08',name:'网络编程实战',group:'网络'},
+    {id:'os_09',name:'网络排查案例课',group:'网络'},
+  ]},
+  { id:'cat_cs', name:'计算机基础', icon:'🧮', courses:[
+    {id:'cs_01',name:'深入浅出计算机组成原理',group:'组成原理'},
+    {id:'cs_02',name:'编程高手必学的内存知识',group:'内存'},
+    {id:'cs_03',name:'数据结构与算法之美',group:'算法'},
+    {id:'cs_04',name:'动态规划面试宝典',group:'算法'},
+    {id:'cs_05',name:'业务开发算法 50 讲',group:'算法'},
+    {id:'cs_06',name:'检索技术核心20讲',group:'算法'},
+    {id:'cs_07',name:'编译原理之美',group:'编译'},
+    {id:'cs_08',name:'编译原理实战课',group:'编译'},
+    {id:'cs_09',name:'程序员的数学基础课',group:'数学'},
+    {id:'cs_10',name:'重学线性代数',group:'数学'},
+  ]},
+  { id:'cat_perf', name:'性能优化', icon:'⚡', courses:[
+    {id:'perf_01',name:'系统性能调优必知必会',group:'通用'},
+    {id:'perf_02',name:'性能优化高手课',group:'通用'},
+    {id:'perf_03',name:'性能工程高手课',group:'通用'},
+    {id:'perf_04',name:'高楼的性能工程实战课',group:'通用'},
+    {id:'perf_05',name:'性能测试实战30讲',group:'压测'},
+    {id:'perf_06',name:'全链路压测实战 30 讲',group:'压测'},
+    {id:'perf_07',name:'容量保障核心技术与实战',group:'压测'},
+  ]},
+  { id:'cat_test', name:'测试 & 质量', icon:'🧪', courses:[
+    {id:'test_01',name:'程序员的测试课',group:'综合'},
+    {id:'test_02',name:'软件测试52讲',group:'综合'},
+    {id:'test_03',name:'接口测试入门课',group:'综合'},
+    {id:'test_04',name:'自动化测试高手课',group:'自动化'},
+    {id:'test_05',name:'徐昊·TDD 项目实战 70 讲',group:'TDD'},
+    {id:'test_06',name:'A|B测试从0到1',group:'AB测试'},
+  ]},
+  { id:'cat_sec', name:'安全', icon:'🔐', courses:[
+    {id:'sec_01',name:'安全攻防技能30讲',group:'安全'},
+    {id:'sec_02',name:'Web 漏洞挖掘实战',group:'安全'},
+    {id:'sec_03',name:'反爬虫兵法演绎 20 讲',group:'安全'},
+    {id:'sec_04',name:'OAuth 2.0实战课',group:'认证授权'},
+    {id:'sec_05',name:'实用密码学',group:'密码学'},
+  ]},
+  { id:'cat_devops', name:'工程效能 & DevOps', icon:'🚀', courses:[
+    {id:'devops_01',name:'DevOps实战笔记',group:'DevOps'},
+    {id:'devops_02',name:'持续交付36讲',group:'CI/CD'},
+    {id:'devops_03',name:'研发效率破局之道',group:'效能'},
+    {id:'devops_04',name:'赵成的运维体系管理课',group:'运维'},
+    {id:'devops_05',name:'SRE实战手册',group:'SRE'},
+    {id:'devops_06',name:'遗留系统现代化实战',group:'系统改造'},
+  ]},
+  { id:'cat_code', name:'代码质量 & 工程', icon:'📐', courses:[
+    {id:'code_01',name:'代码精进之路',group:'编码实践'},
+    {id:'code_02',name:'代码之丑',group:'编码实践'},
+    {id:'code_03',name:'设计模式之美',group:'设计模式'},
+    {id:'code_04',name:'软件工程之美',group:'工程方法'},
+    {id:'code_05',name:'软件设计之美',group:'工程方法'},
+    {id:'code_06',name:'10x程序员工作法',group:'工程方法'},
+    {id:'code_07',name:'左耳听风',group:'工程方法'},
+    {id:'code_08',name:'全栈工程师修炼指南',group:'工程方法'},
+    {id:'code_09',name:'Vim 实用技巧必知必会',group:'工具'},
+    {id:'code_10',name:'正则表达式入门课',group:'工具'},
+    {id:'code_11',name:'手把手带你写一个 Web 框架',group:'实战'},
+    {id:'code_12',name:'手把手带你写一门编程语言',group:'实战'},
+  ]},
+  { id:'cat_mgmt', name:'技术管理 & 职场', icon:'👔', courses:[
+    {id:'mgmt_01',name:'技术管理实战36讲',group:'管理'},
+    {id:'mgmt_02',name:'技术管理案例课',group:'管理'},
+    {id:'mgmt_03',name:'技术领导力实战笔记',group:'管理'},
+    {id:'mgmt_04',name:'乔新亮的CTO成长复盘',group:'管理'},
+    {id:'mgmt_05',name:'朱赟的技术管理课',group:'管理'},
+    {id:'mgmt_06',name:'黄勇的OKR实战笔记',group:'效率'},
+    {id:'mgmt_07',name:'流程型组织15讲',group:'效率'},
+    {id:'mgmt_08',name:'项目管理实战20讲',group:'效率'},
+    {id:'mgmt_09',name:'大厂晋升指南',group:'职场'},
+    {id:'mgmt_10',name:'面试现场',group:'职场'},
+    {id:'mgmt_11',name:'后端技术面试38讲',group:'职场'},
+    {id:'mgmt_12',name:'技术面试官识人手册',group:'职场'},
+    {id:'mgmt_13',name:'职场求生攻略',group:'职场'},
+    {id:'mgmt_14',name:'程序员进阶攻略',group:'职场'},
+  ]},
+  { id:'cat_product', name:'产品 & 设计', icon:'🎨', courses:[
+    {id:'prod_01',name:'邱岳的产品实战',group:'产品'},
+    {id:'prod_02',name:'邱岳的产品手记',group:'产品'},
+    {id:'prod_03',name:'苏杰的产品创新课',group:'产品'},
+    {id:'prod_04',name:'硅谷产品实战36讲',group:'产品'},
+    {id:'prod_05',name:'大厂广告产品心法',group:'产品'},
+    {id:'prod_06',name:'用户体验设计实战课',group:'设计'},
+    {id:'prod_07',name:'基于人因的用户体验设计课',group:'设计'},
+    {id:'prod_08',name:'体验设计案例课',group:'设计'},
+    {id:'prod_09',name:'跟月影学可视化',group:'可视化'},
+    {id:'prod_10',name:'从0开始做增长',group:'增长运营'},
+    {id:'prod_11',name:'To B市场品牌实战课',group:'增长运营'},
+  ]},
+  { id:'cat_other', name:'非技术 & 兴趣', icon:'🌱', courses:[
+    {id:'oth_01',name:'如何成为学习高手',group:'学习方法'},
+    {id:'oth_02',name:'跟着高手学复盘',group:'学习方法'},
+    {id:'oth_03',name:'人人都用得上的写作课',group:'写作表达'},
+    {id:'oth_04',name:'讲好故事',group:'写作表达'},
+    {id:'oth_05',name:'编辑训练营',group:'写作表达'},
+    {id:'oth_06',name:'视觉笔记入门课',group:'写作表达'},
+    {id:'oth_07',name:'如何读懂一首诗',group:'写作表达'},
+    {id:'oth_08',name:'如何看懂一幅画',group:'写作表达'},
+    {id:'oth_09',name:'程序员的个人财富课',group:'职业财富'},
+    {id:'oth_10',name:'白话法律42讲',group:'职业财富'},
+    {id:'oth_11',name:'超级访谈：对话汤峥嵘',group:'访谈'},
+    {id:'oth_12',name:'超级访谈：对话张雪峰',group:'访谈'},
+    {id:'oth_13',name:'互联网人的英语私教课',group:'语言'},
+    {id:'oth_14',name:'人人都能学会的编程入门课',group:'语言'},
+    {id:'oth_15',name:'从0打造音视频直播系统',group:'音视频'},
+    {id:'oth_16',name:'搞定音频技术',group:'音视频'},
+    {id:'oth_17',name:'攻克视频技术',group:'音视频'},
+    {id:'oth_18',name:'说透5G',group:'科技科普'},
+    {id:'oth_19',name:'说透低代码',group:'科技科普'},
+    {id:'oth_20',name:'说透敏捷',group:'科技科普'},
+    {id:'oth_21',name:'说透区块链',group:'科技科普'},
+    {id:'oth_22',name:'深入浅出区块链',group:'科技科普'},
+    {id:'oth_23',name:'说透数字化转型',group:'科技科普'},
+    {id:'oth_24',name:'说透芯片',group:'科技科普'},
+    {id:'oth_25',name:'说透中台',group:'科技科普'},
+    {id:'oth_26',name:'物联网开发实战',group:'科技科普'},
+    {id:'oth_27',name:'从0开始学游戏开发',group:'游戏'},
+    {id:'oth_28',name:'打造爆款短视频',group:'创作'},
+    {id:'oth_29',name:'爱上跑步',group:'健康兴趣'},
+    {id:'oth_30',name:'恋爱必修课',group:'健康兴趣'},
+    {id:'oth_31',name:'手把手教你玩音乐',group:'健康兴趣'},
+    {id:'oth_32',name:'摄影入门课',group:'健康兴趣'},
+    {id:'oth_33',name:'手机摄影',group:'健康兴趣'},
+    {id:'oth_34',name:'去无方向的信',group:'健康兴趣'},
+    {id:'oth_35',name:'如何做好一场技术演讲',group:'演讲'},
+  ]},
+];
+
+const CAT_COLORS = [
+  '#6366f1','#06b6d4','#f59e0b','#8b5cf6','#3b82f6',
+  '#f97316','#22c55e','#a855f7','#10b981','#64748b',
+  '#ef4444','#14b8a6','#84cc16','#ec4899','#0ea5e9',
+  '#f43f5e','#e879f9','#4ade80'
+];
+
+const CAT_COLOR_MAP = {};
+COURSE_DATA.forEach((cat, i) => { CAT_COLOR_MAP[cat.id] = CAT_COLORS[i]; });
+</script>
+
+<script>
+// ════════════════════════════════════════════════
+// Block B: State Management
+// ════════════════════════════════════════════════
+
+let courseState = {};
+let customTags = {};
+let runtimeCategories = [];
+
+let filters = {
+  search: '',
+  statuses: new Set(['normal','important','learning','done']),
+  tagIds: new Set(),
+  catIds: new Set(),
+};
+
+function initState() {
+  runtimeCategories = COURSE_DATA.map(cat => ({
+    ...cat,
+    courses: cat.courses.map(c => ({ ...c })),
+  }));
+  runtimeCategories.forEach(cat => {
+    cat.courses.forEach(c => {
+      courseState[c.id] = { status:'normal', customTagIds:[], note:'', startedAt:null, doneAt:null };
+    });
+  });
+  filters.catIds = new Set(runtimeCategories.map(c => c.id));
+}
+
+function getState(courseId) {
+  return courseState[courseId] || { status:'normal', customTagIds:[], note:'', startedAt:null, doneAt:null };
+}
+
+function setState(courseId, patch) {
+  const prev = getState(courseId);
+  const next = { ...prev, ...patch };
+  if (patch.status === 'learning' && prev.status !== 'learning') next.startedAt = todayStr();
+  if (patch.status === 'done'     && prev.status !== 'done')     next.doneAt    = todayStr();
+  courseState[courseId] = next;
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function createTag({ label, color, emoji }) {
+  const id = 'tag_' + Date.now();
+  customTags[id] = { id, label, color, emoji: emoji || '' };
+  return id;
+}
+
+function updateTag(id, patch) {
+  if (customTags[id]) customTags[id] = { ...customTags[id], ...patch };
+}
+
+function deleteTag(tagId) {
+  delete customTags[tagId];
+  Object.keys(courseState).forEach(cid => {
+    courseState[cid].customTagIds = (courseState[cid].customTagIds || []).filter(t => t !== tagId);
+  });
+}
+
+function toggleCourseTag(courseId, tagId) {
+  const st = getState(courseId);
+  const ids = st.customTagIds || [];
+  const next = ids.includes(tagId) ? ids.filter(t => t !== tagId) : [...ids, tagId];
+  setState(courseId, { customTagIds: next });
+}
+
+function moveCourse(courseId, targetCatId) {
+  let course = null;
+  runtimeCategories.forEach(cat => {
+    const idx = cat.courses.findIndex(c => c.id === courseId);
+    if (idx !== -1) { [course] = cat.courses.splice(idx, 1); }
+  });
+  if (course) {
+    const target = runtimeCategories.find(c => c.id === targetCatId);
+    if (target) target.courses.push(course);
+  }
+}
+
+function calcStats() {
+  const s = { total:0, important:0, learning:0, done:0, deleted:0 };
+  runtimeCategories.forEach(cat => {
+    cat.courses.forEach(c => {
+      s.total++;
+      const st = getState(c.id).status;
+      if (s[st] !== undefined) s[st]++;
+    });
+  });
+  return s;
+}
+
+function updateStatsBar() {
+  const s = calcStats();
+  document.getElementById('stat-important').textContent = `⭐ ${s.important}`;
+  document.getElementById('stat-learning').textContent  = `📚 ${s.learning}`;
+  document.getElementById('stat-done').textContent      = `✅ ${s.done}`;
+  document.getElementById('stat-deleted').textContent   = `🗑️ ${s.deleted}`;
+  document.getElementById('stat-total').textContent     = `共 ${s.total}`;
+}
+
+// ── localStorage 自动保存 / 恢复 ─────────────────
+
+const LS_KEY_STATE = 'gkt_courseState';
+const LS_KEY_TAGS  = 'gkt_customTags';
+const LS_KEY_CATS  = 'gkt_runtimeCategories';
+
+function autoSave() {
+  try {
+    localStorage.setItem(LS_KEY_STATE, JSON.stringify(courseState));
+    localStorage.setItem(LS_KEY_TAGS,  JSON.stringify(customTags));
+    localStorage.setItem(LS_KEY_CATS,  JSON.stringify(runtimeCategories));
+    // 短暂高亮保存指示器
+    const el = document.getElementById('autosave-indicator');
+    if (el) {
+      el.style.color = '#22c55e';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.style.color = '#475569'; }, 1200);
+    }
+  } catch(e) { /* localStorage 不可用时静默失败 */ }
+}
+
+function autoRestore() {
+  try {
+    const state = localStorage.getItem(LS_KEY_STATE);
+    const tags  = localStorage.getItem(LS_KEY_TAGS);
+    const cats  = localStorage.getItem(LS_KEY_CATS);
+    if (state) courseState        = JSON.parse(state);
+    if (tags)  customTags         = JSON.parse(tags);
+    if (cats)  runtimeCategories  = JSON.parse(cats);
+    // 确保 filters.catIds 与 runtimeCategories 同步
+    filters.catIds = new Set(runtimeCategories.map(c => c.id));
+  } catch(e) {
+    console.warn('自动恢复失败，使用默认数据', e);
+  }
+}
+
+function clearLocalStorage() {
+  if (!confirm('确定清除本地缓存？所有标注、备注、自定义标签将恢复初始状态。')) return;
+  localStorage.removeItem(LS_KEY_STATE);
+  localStorage.removeItem(LS_KEY_TAGS);
+  localStorage.removeItem(LS_KEY_CATS);
+  courseState = {};
+  customTags  = {};
+  initState();
+  expandedCats.clear();
+  buildSidebar();
+  render();
+}
+
+function isCourseVisible(course) {
+  const st = getState(course.id);
+  if (st.status === 'deleted' && !filters.statuses.has('deleted')) return false;
+  if (st.status !== 'deleted' && !filters.statuses.has(st.status)) return false;
+  if (filters.tagIds.size > 0) {
+    const hasTag = (st.customTagIds || []).some(tid => filters.tagIds.has(tid));
+    if (!hasTag) return false;
+  }
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    if (!course.name.toLowerCase().includes(q) && !(st.note || '').toLowerCase().includes(q)) return false;
+  }
+  return true;
+}
+
+function findCourse(courseId) {
+  for (const cat of runtimeCategories) {
+    const c = cat.courses.find(c => c.id === courseId);
+    if (c) return c;
+  }
+  return null;
+}
+</script>
+
+<script>
+// ════════════════════════════════════════════════
+// Block C: D3 Tree Rendering
+// ════════════════════════════════════════════════
+
+const NODE_HEIGHT  = 22;
+const CAT_PADDING  = 14;
+const X_STEP_CAT   = 180;
+const X_STEP_COURSE = 220;
+
+let svgEl, gMain, zoomBehavior;
+const expandedCats = new Set();
+
+const STATUS_STYLE = {
+  normal:    { fill:'#1e293b', stroke:'#475569', text:'#94a3b8', icon:'' },
+  important: { fill:'#92400e', stroke:'#f59e0b', text:'#fbbf24', icon:'⭐' },
+  learning:  { fill:'#1e3a5f', stroke:'#3b82f6', text:'#60a5fa', icon:'📚' },
+  done:      { fill:'#14532d', stroke:'#22c55e', text:'#4ade80', icon:'✅' },
+  deleted:   { fill:'#1c0a0a', stroke:'#ef4444', text:'#6b7280', icon:'🗑️' },
+};
+
+const _canvas2d = document.createElement('canvas');
+const _ctx2d = _canvas2d.getContext('2d');
+_ctx2d.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+function measureText(str) { return _ctx2d.measureText(str).width; }
+function truncate(str, maxLen) { return str.length > maxLen ? str.slice(0, maxLen) + '…' : str; }
+
+function initSVG() {
+  const container = document.getElementById('canvas');
+  svgEl = d3.select('#svg')
+    .attr('width',  container.clientWidth)
+    .attr('height', container.clientHeight);
+
+  zoomBehavior = d3.zoom()
+    .scaleExtent([0.08, 3])
+    .on('zoom', e => gMain.attr('transform', e.transform));
+
+  svgEl.call(zoomBehavior);
+  svgEl.on('dblclick.zoom', null);
+  svgEl.on('dblclick', (e) => {
+    if (e.target === svgEl.node() || e.target.tagName === 'svg') resetView();
+  });
+
+  gMain = svgEl.append('g').attr('class', 'g-main');
+}
+
+function buildTreeData() {
+  return runtimeCategories
+    .filter(cat => {
+      if (!filters.catIds.has(cat.id)) return false;
+      if (filters.search || filters.tagIds.size > 0) {
+        return cat.courses.some(c => isCourseVisible(c));
+      }
+      return true;
+    })
+    .map(cat => {
+      const visibleCourses = cat.courses.filter(c => isCourseVisible(c));
+      const activeCount = cat.courses.filter(c => getState(c.id).status !== 'deleted').length;
+      return {
+        id: cat.id,
+        name: `${cat.icon} ${cat.name}`,
+        color: CAT_COLOR_MAP[cat.id],
+        courseCount: activeCount,
+        totalCount: cat.courses.length,
+        courses: expandedCats.has(cat.id) ? visibleCourses.map(course => ({
+          id: course.id,
+          name: course.name,
+          status: getState(course.id).status,
+          customTagIds: getState(course.id).customTagIds || [],
+          note: getState(course.id).note || '',
+        })) : [],
+      };
+    });
+}
+
+function render() {
+  if (!gMain) return;
+  gMain.selectAll('*').remove();
+
+  const cats = buildTreeData();
+  if (!cats.length) { updateStatsBar(); return; }
+
+  // Layout: root at (0,0), categories at x=X_STEP_CAT spread vertically
+  const nodes = [];
+  const links = [];
+
+  const rootNode = { type:'root', x:0, y:0 };
+  nodes.push(rootNode);
+
+  let yOffset = 0;
+  cats.forEach(cat => {
+    const numCourses = cat.courses.length;
+    const catHeight = Math.max(NODE_HEIGHT + CAT_PADDING * 2, numCourses * NODE_HEIGHT + CAT_PADDING * 2);
+    const catY = yOffset + catHeight / 2;
+    const catNode = { ...cat, type:'category', x: X_STEP_CAT, y: catY };
+    nodes.push(catNode);
+    links.push({ source: rootNode, target: catNode, type:'cat' });
+
+    let courseY = yOffset + CAT_PADDING;
+    cat.courses.forEach(course => {
+      const cn = { ...course, type:'course', x: X_STEP_CAT + X_STEP_COURSE, y: courseY + NODE_HEIGHT / 2 };
+      nodes.push(cn);
+      links.push({ source: catNode, target: cn, type:'course' });
+      courseY += NODE_HEIGHT;
+    });
+
+    yOffset += catHeight;
+  });
+
+  // Links
+  const linkHoriz = d3.linkHorizontal().x(d => d.x).y(d => d.y);
+
+  gMain.append('g').attr('class','links')
+    .selectAll('path').data(links).join('path')
+    .attr('class', d => d.type === 'cat' ? 'link link-cat' : 'link')
+    .attr('d', d => linkHoriz({ source:{x:d.source.x,y:d.source.y}, target:{x:d.target.x,y:d.target.y} }))
+    .attr('stroke', d => {
+      if (d.type === 'cat') return d.target.color || '#475569';
+      return (STATUS_STYLE[d.target.status] || STATUS_STYLE.normal).stroke;
+    })
+    .attr('opacity', 0.55);
+
+  // Nodes
+  const nodeG = gMain.append('g').attr('class','nodes')
+    .selectAll('g').data(nodes).join('g')
+    .attr('class', d => `node node-${d.type}${d.type==='course' ? ' status-'+d.status : ''}`)
+    .attr('transform', d => `translate(${d.x},${d.y})`);
+
+  // Root node
+  const rootG = nodeG.filter(d => d.type === 'root');
+  rootG.append('circle').attr('r', 30).attr('fill','#0f172a').attr('stroke','#f59e0b').attr('stroke-width', 2.5);
+  rootG.append('text').attr('text-anchor','middle').attr('dy','-0.2em')
+    .attr('fill','#f59e0b').attr('font-size','13px').attr('font-weight','700').text('极客时间');
+  rootG.append('text').attr('text-anchor','middle').attr('dy','1em')
+    .attr('fill','#78716c').attr('font-size','9px').text('课程脑图');
+
+  // Category nodes
+  const catG = nodeG.filter(d => d.type === 'category');
+  catG.each(function(d) {
+    const g = d3.select(this);
+    const textW = measureText(d.name);
+    const rectW = textW + 28;
+    g.append('rect')
+      .attr('x', -4).attr('y', -13)
+      .attr('width', rectW).attr('height', 26)
+      .attr('rx', 6).attr('ry', 6)
+      .attr('fill', d.color).attr('fill-opacity', 0.15)
+      .attr('stroke', d.color).attr('stroke-width', 1.5);
+    g.append('text')
+      .attr('x', 8).attr('dy', '0.35em')
+      .attr('fill', d.color).attr('font-size','12px').attr('font-weight','600')
+      .text(d.name);
+    const isOpen = expandedCats.has(d.id);
+    g.append('text')
+      .attr('x', rectW + 2).attr('dy','0.35em')
+      .attr('fill', d.color + '99').attr('font-size','10px')
+      .text(`${d.courseCount}门 ${isOpen ? '▾' : '▸'}`);
+  });
+  catG.style('cursor','pointer')
+    .on('click', (e, d) => { e.stopPropagation(); toggleCat(d.id); });
+
+  // Course nodes
+  const courseG = nodeG.filter(d => d.type === 'course');
+  const HOVER_R = 7;
+  courseG.append('circle')
+    .attr('r', 5)
+    .attr('fill', d => (STATUS_STYLE[d.status] || STATUS_STYLE.normal).fill)
+    .attr('stroke', d => (STATUS_STYLE[d.status] || STATUS_STYLE.normal).stroke)
+    .attr('stroke-width', 1.5);
+
+  // Custom tag outer ring
+  courseG.filter(d => d.customTagIds && d.customTagIds.length > 0)
+    .append('circle')
+    .attr('r', 8)
+    .attr('fill','none')
+    .attr('stroke', d => { const tag = customTags[d.customTagIds[0]]; return tag ? tag.color : 'transparent'; })
+    .attr('stroke-width', 1.5)
+    .attr('stroke-dasharray','3 2');
+
+  courseG.append('text')
+    .attr('x', 12).attr('dy','0.35em')
+    .attr('fill', d => (STATUS_STYLE[d.status] || STATUS_STYLE.normal).text)
+    .attr('font-size','11px')
+    .attr('text-decoration', d => d.status === 'deleted' ? 'line-through' : 'none')
+    .text(d => truncate(d.name, 28));
+
+  // Status icon
+  courseG.filter(d => STATUS_STYLE[d.status] && STATUS_STYLE[d.status].icon)
+    .append('text')
+    .attr('x',-13).attr('dy','0.35em')
+    .attr('text-anchor','middle').attr('font-size','9px')
+    .text(d => STATUS_STYLE[d.status].icon);
+
+  // Note indicator dot
+  courseG.filter(d => d.note && d.note.length > 0)
+    .append('circle')
+    .attr('cx',0).attr('cy',-8).attr('r',3).attr('fill','#a78bfa');
+
+  // Course interactions
+  courseG.style('cursor','pointer')
+    .on('click',       (e,d) => { e.stopPropagation(); showContextMenu(e,d); })
+    .on('contextmenu', (e,d) => { e.preventDefault(); showContextMenu(e,d); })
+    .on('mouseenter',  (e,d) => {
+      d3.select(e.currentTarget).select('circle').attr('r', HOVER_R);
+      showTooltip(e,d);
+    })
+    .on('mouseleave',  (e) => {
+      d3.select(e.currentTarget).select('circle').attr('r', 5);
+      hideTooltip();
+    });
+
+  updateStatsBar();
+  autoSave();
+}
+
+function toggleCat(catId) {
+  expandedCats.has(catId) ? expandedCats.delete(catId) : expandedCats.add(catId);
+  render();
+}
+function expandAll()   { runtimeCategories.forEach(c => expandedCats.add(c.id)); render(); }
+function collapseAll() { expandedCats.clear(); render(); }
+function resetView() {
+  if (!svgEl) return;
+  const container = document.getElementById('canvas');
+  svgEl.transition().duration(500)
+    .call(zoomBehavior.transform, d3.zoomIdentity.translate(80, container.clientHeight / 2).scale(0.85));
+}
+</script>
+
+<script>
+// ════════════════════════════════════════════════
+// Block D: UI Logic
+// ════════════════════════════════════════════════
+
+// ── Sidebar ──────────────────────────────────────
+
+function buildSidebar() {
+  const catList = document.getElementById('cat-filter-list');
+  catList.innerHTML = '';
+  runtimeCategories.forEach(cat => {
+    const label = document.createElement('label');
+    label.className = 'filter-row';
+    label.innerHTML = `<input type="checkbox" id="f-cat-${cat.id}" checked onchange="onCatFilterChange()">
+      ${cat.icon} ${cat.name}<span class="badge">${cat.courses.length}</span>`;
+    catList.appendChild(label);
+  });
+  refreshTagFilterList();
+  refreshTagMgmtList();
+}
+
+function onCatFilterChange() {
+  const allChecked = runtimeCategories.every(c => document.getElementById(`f-cat-${c.id}`)?.checked);
+  document.getElementById('f-cat-all').checked = allChecked;
+  filters.catIds = new Set(runtimeCategories.filter(c => document.getElementById(`f-cat-${c.id}`)?.checked).map(c => c.id));
+  render();
+}
+
+function toggleAllCats(checked) {
+  runtimeCategories.forEach(cat => { const el = document.getElementById(`f-cat-${cat.id}`); if (el) el.checked = checked; });
+  filters.catIds = checked ? new Set(runtimeCategories.map(c => c.id)) : new Set();
+  render();
+}
+
+function refreshTagFilterList() {
+  const tagIds = Object.keys(customTags);
+  const section = document.getElementById('section-tag-filter');
+  section.style.display = tagIds.length ? '' : 'none';
+  const list = document.getElementById('tag-filter-list');
+  list.innerHTML = '';
+  tagIds.forEach(tid => {
+    const tag = customTags[tid];
+    const label = document.createElement('label');
+    label.className = 'filter-row';
+    label.innerHTML = `<input type="checkbox" id="f-tag-${tid}" onchange="onTagFilterChange()">
+      <span class="color-dot" style="background:${tag.color}"></span>
+      ${tag.emoji || ''} ${tag.label}`;
+    list.appendChild(label);
+  });
+}
+
+function onTagFilterChange() {
+  filters.tagIds = new Set(Object.keys(customTags).filter(tid => document.getElementById(`f-tag-${tid}`)?.checked));
+  render();
+}
+
+function refreshTagMgmtList() {
+  const list = document.getElementById('tag-mgmt-list');
+  list.innerHTML = '';
+  Object.values(customTags).forEach(tag => {
+    const div = document.createElement('div');
+    div.className = 'tag-pill';
+    div.innerHTML = `<span class="tag-label">
+        <span style="width:10px;height:10px;border-radius:50%;background:${tag.color};display:inline-block;flex-shrink:0"></span>
+        ${tag.emoji || ''} ${tag.label}
+      </span>
+      <span class="tag-actions">
+        <button class="tag-act" onclick="openTagModal('${tag.id}',null)" title="编辑">✏️</button>
+        <button class="tag-act" onclick="deleteTagAndRefresh('${tag.id}')" title="删除">🗑️</button>
+      </span>`;
+    list.appendChild(div);
+  });
+}
+
+function deleteTagAndRefresh(tagId) {
+  if (!confirm(`确定删除标签「${customTags[tagId]?.label}」？已打标签的课程将自动移除该标签。`)) return;
+  deleteTag(tagId);
+  refreshTagFilterList();
+  refreshTagMgmtList();
+  render();
+}
+
+function applyFilters() {
+  filters.statuses = new Set();
+  ['normal','important','learning','done'].forEach(s => {
+    if (document.getElementById(`f-${s}`)?.checked) filters.statuses.add(s);
+  });
+  if (document.getElementById('f-deleted')?.checked) filters.statuses.add('deleted');
+  render();
+}
+
+function resetFilters() {
+  ['f-normal','f-important','f-learning','f-done'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = true; });
+  const fd = document.getElementById('f-deleted'); if (fd) fd.checked = false;
+  Object.keys(customTags).forEach(tid => { const el = document.getElementById(`f-tag-${tid}`); if (el) el.checked = false; });
+  toggleAllCats(true);
+  clearSearch();
+  filters.statuses = new Set(['normal','important','learning','done']);
+  filters.tagIds = new Set();
+  render();
+}
+
+// ── Search ────────────────────────────────────────
+
+function onSearch(value) {
+  filters.search = value.trim();
+  document.getElementById('search-clear').style.display = value ? 'block' : 'none';
+  if (filters.search) {
+    runtimeCategories.forEach(cat => {
+      if (cat.courses.some(c => isCourseVisible(c))) expandedCats.add(cat.id);
+    });
+  }
+  render();
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  input.value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  filters.search = '';
+  render();
+}
+
+// ── Context Menu ──────────────────────────────────
+
+let ctxCourseId = null;
+let noteModalCourseId = null;
+
+function showContextMenu(event, d) {
+  event.stopPropagation();
+  ctxCourseId = d.id;
+  const menu = document.getElementById('context-menu');
+  const st = getState(d.id).status;
+  ['important','learning','done'].forEach(s => {
+    const el = document.getElementById(`cm-${s}`);
+    if (el) el.classList.toggle('active', st === s);
+  });
+  buildTagSubMenu(d.id);
+  buildMoveSubMenu(d.id);
+  const x = Math.min(event.clientX, window.innerWidth  - 205);
+  const y = Math.min(event.clientY, window.innerHeight - 250);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  menu.style.display = 'block';
+}
+
+function hideContextMenu() {
+  document.getElementById('context-menu').style.display = 'none';
+  ctxCourseId = null;
+}
+
+function setStatus(status) {
+  if (!ctxCourseId) return;
+  const prev = getState(ctxCourseId).status;
+  setState(ctxCourseId, { status: prev === status ? 'normal' : status });
+  hideContextMenu();
+  render();
+}
+
+function resetCourse() {
+  if (!ctxCourseId) return;
+  courseState[ctxCourseId] = { status:'normal', customTagIds:[], note:'', startedAt:null, doneAt:null };
+  hideContextMenu();
+  render();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#context-menu')) hideContextMenu();
+});
+
+// ── Note Modal ────────────────────────────────────
+
+function openNoteModal() {
+  if (!ctxCourseId) return;
+  noteModalCourseId = ctxCourseId;
+  hideContextMenu();
+  const course = findCourse(noteModalCourseId);
+  document.getElementById('note-course-name').textContent = course?.name || noteModalCourseId;
+  document.getElementById('note-textarea').value = getState(noteModalCourseId).note || '';
+  openModal('modal-note');
+}
+
+function saveNote() {
+  if (!noteModalCourseId) return;
+  setState(noteModalCourseId, { note: document.getElementById('note-textarea').value.trim() });
+  noteModalCourseId = null;
+  closeModal('modal-note');
+  render();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modal-note','modal-tag','modal-import'].forEach(id => {
+      if (document.getElementById(id)?.classList.contains('open')) closeModal(id);
+    });
+  }
+});
+
+// ── Tooltip ───────────────────────────────────────
+
+function showTooltip(event, d) {
+  const tip = document.getElementById('tooltip');
+  const st  = getState(d.id);
+  document.getElementById('tt-name').textContent = d.name;
+  document.getElementById('tt-note').textContent = st.note ? `备注：${st.note}` : '';
+  const tagsEl = document.getElementById('tt-tags');
+  tagsEl.innerHTML = '';
+  (st.customTagIds || []).forEach(tid => {
+    const tag = customTags[tid];
+    if (!tag) return;
+    const span = document.createElement('span');
+    span.className = 'tt-tag';
+    span.style.borderLeft = `3px solid ${tag.color}`;
+    span.textContent = `${tag.emoji || ''} ${tag.label}`.trim();
+    tagsEl.appendChild(span);
+  });
+  const x = Math.min(event.clientX + 14, window.innerWidth  - 280);
+  const y = Math.min(event.clientY + 14, window.innerHeight - 120);
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+  tip.style.display = 'block';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+// ── Custom Tags ───────────────────────────────────
+
+const TAG_PRESET_COLORS = ['#f59e0b','#3b82f6','#22c55e','#ef4444','#a855f7','#06b6d4'];
+let tagModalCurrentColor = TAG_PRESET_COLORS[0];
+let tagApplyToCourseId = null;
+
+function openTagModal(editTagId, applyToCourseId) {
+  hideContextMenu();
+  tagApplyToCourseId = applyToCourseId;
+  const isEdit = !!editTagId;
+  document.getElementById('tag-modal-title').textContent = isEdit ? '✏️ 编辑标签' : '🏷️ 新建标签';
+  document.getElementById('tag-edit-id').value  = editTagId || '';
+  const tag = isEdit ? customTags[editTagId] : null;
+  document.getElementById('tag-name-input').value  = tag?.label || '';
+  document.getElementById('tag-emoji-input').value = tag?.emoji || '';
+  tagModalCurrentColor = tag?.color || TAG_PRESET_COLORS[0];
+  const swatches = document.getElementById('color-swatches');
+  swatches.innerHTML = '';
+  TAG_PRESET_COLORS.forEach(color => {
+    const div = document.createElement('div');
+    div.className = 'swatch' + (color === tagModalCurrentColor ? ' selected' : '');
+    div.style.background = color;
+    div.onclick = () => {
+      tagModalCurrentColor = color;
+      swatches.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      div.classList.add('selected');
+    };
+    swatches.appendChild(div);
+  });
+  openModal('modal-tag');
+}
+
+function saveTag() {
+  const label = document.getElementById('tag-name-input').value.trim();
+  if (!label) { alert('请输入标签名称'); return; }
+  const emoji  = document.getElementById('tag-emoji-input').value.trim();
+  const editId = document.getElementById('tag-edit-id').value;
+  let tagId;
+  if (editId) {
+    updateTag(editId, { label, color: tagModalCurrentColor, emoji });
+    tagId = editId;
+  } else {
+    tagId = createTag({ label, color: tagModalCurrentColor, emoji });
+  }
+  if (tagApplyToCourseId && !editId) toggleCourseTag(tagApplyToCourseId, tagId);
+  closeModal('modal-tag');
+  refreshTagFilterList();
+  refreshTagMgmtList();
+  render();
+}
+
+function buildTagSubMenu(courseId) {
+  const list = document.getElementById('cm-tag-list');
+  list.innerHTML = '';
+  const st = getState(courseId);
+  Object.values(customTags).forEach(tag => {
+    const checked = (st.customTagIds || []).includes(tag.id);
+    const item = document.createElement('div');
+    item.className = 'cm-item' + (checked ? ' active' : '');
+    item.innerHTML = `<span style="color:${tag.color}">${tag.emoji || '🏷️'}</span> ${tag.label} ${checked ? '✓' : ''}`;
+    item.onclick = e => {
+      e.stopPropagation();
+      toggleCourseTag(courseId, tag.id);
+      render();
+      buildTagSubMenu(courseId);
+    };
+    list.appendChild(item);
+  });
+  if (Object.keys(customTags).length > 0) {
+    const sep = document.createElement('div'); sep.className = 'cm-sep'; list.appendChild(sep);
+  }
+  const newItem = document.createElement('div');
+  newItem.className = 'cm-item';
+  newItem.innerHTML = '＋ 新建标签';
+  newItem.onclick = e => { e.stopPropagation(); openTagModal(null, courseId); };
+  list.appendChild(newItem);
+}
+
+// ── Move to Category ──────────────────────────────
+
+function buildMoveSubMenu(courseId) {
+  const list = document.getElementById('cm-move-list');
+  list.innerHTML = '';
+  let currentCatId = null;
+  runtimeCategories.forEach(cat => { if (cat.courses.find(c => c.id === courseId)) currentCatId = cat.id; });
+  runtimeCategories.forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'cm-item' + (cat.id === currentCatId ? ' active' : '');
+    item.innerHTML = `${cat.icon} ${cat.name}`;
+    if (cat.id === currentCatId) { item.style.pointerEvents = 'none'; }
+    else {
+      item.onclick = e => {
+        e.stopPropagation();
+        moveCourse(courseId, cat.id);
+        hideContextMenu();
+        buildSidebar();
+        render();
+      };
+    }
+    list.appendChild(item);
+  });
+}
+</script>
+
+<script>
+// ════════════════════════════════════════════════
+// Block E: Import / Export
+// ════════════════════════════════════════════════
+
+function exportJSON() {
+  const stats = calcStats();
+  const payload = {
+    meta: { title:'极客时间课程脑图', version:'1.0', exportedAt: new Date().toISOString() },
+    customTags: Object.values(customTags),
+    categories: runtimeCategories.map(cat => ({
+      id: cat.id, name: cat.name, icon: cat.icon,
+      courses: cat.courses.map(c => {
+        const st = getState(c.id);
+        return { id:c.id, name:c.name, group:c.group, ...st };
+      }),
+    })),
+    stats,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `geektime_mindmap_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+let pendingImportData = null;
+
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.categories) throw new Error('缺少 categories 字段');
+      pendingImportData = data;
+      showImportConfirm(data);
+    } catch (err) {
+      alert('❌ 导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function showImportConfirm(data) {
+  const info = document.getElementById('import-info');
+  const s = data.stats || {};
+  const ts = data.meta?.exportedAt ? new Date(data.meta.exportedAt).toLocaleString('zh-CN') : '未知';
+  info.innerHTML = `<p>导出时间：<strong>${ts}</strong></p>
+    <p>⭐ ${s.important||0} &nbsp;📚 ${s.learning||0} &nbsp;✅ ${s.done||0} &nbsp;🗑️ ${s.deleted||0} &nbsp;共 ${s.total||'?'} 门</p>`;
+  openModal('modal-import');
+}
+
+function confirmImport() {
+  if (!pendingImportData) return;
+  const mode = document.querySelector('input[name="import-mode"]:checked')?.value || 'merge';
+  applyImport(pendingImportData, mode);
+  pendingImportData = null;
+  closeModal('modal-import');
+}
+
+function applyImport(data, mode) {
+  // 1. Custom tags
+  if (data.customTags && Array.isArray(data.customTags)) {
+    if (mode === 'overwrite') customTags = {};
+    data.customTags.forEach(tag => { if (tag.id && tag.label) customTags[tag.id] = tag; });
+  }
+  // 2. Rebuild runtime categories from import
+  if (data.categories && Array.isArray(data.categories)) {
+    const newCats = data.categories.map(cat => ({
+      id: cat.id, name: cat.name, icon: cat.icon || '',
+      courses: (cat.courses || []).map(c => ({ id:c.id, name:c.name, group:c.group||'' })),
+    }));
+    runtimeCategories = newCats;
+    // 3. Restore course state
+    if (mode === 'overwrite') courseState = {};
+    data.categories.forEach(cat => {
+      (cat.courses || []).forEach(c => {
+        const imported = {
+          status:       c.status       || 'normal',
+          customTagIds: c.customTagIds || [],
+          note:         c.note         || '',
+          startedAt:    c.startedAt    || null,
+          doneAt:       c.doneAt       || null,
+        };
+        if (mode === 'merge') {
+          courseState[c.id] = { ...(courseState[c.id] || {}), ...imported };
+        } else {
+          courseState[c.id] = imported;
+        }
+      });
+    });
+  }
+  // 4. Refresh
+  filters.catIds = new Set(runtimeCategories.map(c => c.id));
+  buildSidebar();
+  render();
+}
+</script>
+
+<script>
+// ── App Startup ───────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initState();      // 先从 COURSE_DATA 初始化默认值
+  autoRestore();    // 再从 localStorage 覆盖为上次保存的状态
+  buildSidebar();
+  initSVG();
+  resetView();
+  render();
+});
+
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    const c = document.getElementById('canvas');
+    if (svgEl) svgEl.attr('width', c.clientWidth).attr('height', c.clientHeight);
+    render();
+  }, 150);
+});
+</script>
+
+</body>
+</html>
