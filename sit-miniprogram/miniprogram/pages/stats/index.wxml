@@ -1,0 +1,32 @@
+<view class="container">
+  <view class="tab-bar">
+    <view class="tab {{tab==='today'?'tab-active':''}}" bindtap="switchTab" data-tab="today">今日</view>
+    <view class="tab {{tab==='week'?'tab-active':''}}"  bindtap="switchTab" data-tab="week">本周</view>
+  </view>
+  <view class="ring-wrap">
+    <canvas type="2d" id="ring-canvas" class="ring-canvas" />
+    <view class="ring-legend">
+      <view class="legend-item"><text class="dot good"/>端正 {{goodTime}}</view>
+      <view class="legend-item"><text class="dot hunch"/>弓腰 {{hunchTime}}</view>
+      <view class="legend-item"><text class="dot lying"/>趴着 {{lyingTime}}</view>
+    </view>
+  </view>
+  <view class="bar-section">
+    <text class="section-title">近 7 天端正坐姿（分钟）</text>
+    <canvas type="2d" id="bar-canvas" class="bar-canvas" />
+  </view>
+  <view class="summary-row">
+    <view class="summary-item">
+      <text class="summary-val">{{totalGoodH}}</text>
+      <text class="summary-label">今日端正（小时）</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-val">{{bestStreakMin}}</text>
+      <text class="summary-label">最长连续（分钟）</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-val">{{breaksTaken}}</text>
+      <text class="summary-label">今日休息次数</text>
+    </view>
+  </view>
+</view>

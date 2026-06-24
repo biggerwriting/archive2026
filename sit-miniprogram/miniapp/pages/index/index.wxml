@@ -1,0 +1,47 @@
+<!-- 坐姿检测主页面 -->
+<view class="container">
+  <!-- 摄像头区域 -->
+  <camera
+    id="camera"
+    class="camera"
+    device-position="front"
+    frame-size="medium"
+    binderror="onCameraError"
+  ></camera>
+
+  <!-- Canvas 叠加层（绘制骨架） -->
+  <canvas
+    type="2d"
+    id="skeletonCanvas"
+    class="skeleton-canvas"
+    disable-scroll="{{true}}"
+  ></canvas>
+
+  <!-- 状态面板 -->
+  <view class="panel {{isHunching ? 'panel-alert' : 'panel-ok'}}">
+    <view class="status-text">{{statusText}}</view>
+
+    <!-- 头肩距离进度条（对应 Python 的 draw_feedback） -->
+    <view class="bar-wrapper">
+      <view class="bar">
+        <view class="bar-fill {{isHunching ? 'bar-hunch' : 'bar-good'}}"
+              style="width: {{barWidth}}px">
+        </view>
+      </view>
+      <text class="bar-label">dist: {{dist}} (min: {{threshold}})</text>
+    </view>
+
+    <!-- 弓腰持续时间 -->
+    <view wx:if="{{isHunching}}" class="timer">
+      弓腰 {{hunchSecs}}s
+    </view>
+  </view>
+
+  <!-- 底部控制 -->
+  <view class="controls">
+    <button class="btn"
+            bindtap="{{isRunning ? 'stopMonitor' : 'startMonitor'}}">
+      {{isRunning ? '⏹ 停止' : '▶ 开始检测'}}
+    </button>
+  </view>
+</view>

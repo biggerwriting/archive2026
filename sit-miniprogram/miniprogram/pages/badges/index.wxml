@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="header">
+    <text class="progress-text">已获得 {{earned}} / {{total}} 枚</text>
+  </view>
+  <view class="grid">
+    <view wx:for="{{badges}}" wx:key="id"
+          class="badge-card {{item.earned ? 'badge-earned' : 'badge-locked'}}">
+      <text class="badge-icon">{{item.icon}}</text>
+      <text class="badge-name">{{item.name}}</text>
+      <text class="badge-date" wx:if="{{item.earned}}">{{item.dateStr}}</text>
+      <text class="badge-desc" wx:if="{{!item.earned}}">{{item.description}}</text>
+    </view>
+  </view>
+</view>

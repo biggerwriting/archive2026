@@ -1,0 +1,9 @@
+.container { padding:24rpx; display:flex; flex-direction:column; gap:24rpx; }
+.section { background:#fff; border-radius:16rpx; padding:24rpx; }
+.section-label { font-size:26rpx; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:1rpx; display:block; margin-bottom:16rpx; }
+.segment { display:flex; background:#e5e5e7; border-radius:12rpx; }
+.seg-item { flex:1; text-align:center; padding:16rpx; font-size:28rpx; color:#86868b; border-radius:10rpx; }
+.seg-active { background:#fff; color:#0a84ff; font-weight:600; box-shadow:0 1rpx 4rpx rgba(0,0,0,.12); }
+.stepper { display:flex; align-items:center; justify-content:center; gap:40rpx; }
+.step-btn { width:72rpx; height:72rpx; border-radius:50%; background:#e5e5e7; display:flex; align-items:center; justify-content:center; font-size:40rpx; color:#333; }
+.step-val { font-size:56rpx; font-weight:700; min-width:80rpx; text-align:center; }

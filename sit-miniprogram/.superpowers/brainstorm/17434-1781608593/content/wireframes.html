@@ -1,0 +1,187 @@
+<h2>页面线框图</h2>
+<p class="subtitle">设计节 2/4 · 四个页面的布局结构</p>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px">
+
+  <!-- Monitor Page -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:13px;text-align:center">📷 monitor（主页）</div>
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:11px">
+
+      <!-- Status Card -->
+      <div style="background:#e8f7ee;border-radius:8px;padding:8px;text-align:center;margin-bottom:8px;border:1.5px solid #34c759">
+        <div style="font-size:18px">🧍</div>
+        <div style="font-weight:700;color:#1a7a3a;font-size:13px">端正坐姿</div>
+        <div style="color:#1a7a3a;font-size:11px">已坚持 32:14</div>
+      </div>
+
+      <!-- Camera Preview -->
+      <div style="background:#1a1a2e;border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative">
+        <div style="color:#4ecdc4;font-size:11px;text-align:center">
+          <div>📡 VisionKit</div>
+          <div style="opacity:0.6;margin-top:4px">摄像头预览</div>
+          <!-- skeleton dots -->
+          <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%)">
+            <div style="width:6px;height:6px;background:#4ecdc4;border-radius:50%;margin:0 auto"></div>
+            <div style="display:flex;gap:20px;margin-top:8px">
+              <div style="width:5px;height:5px;background:#4ecdc4;border-radius:50%"></div>
+              <div style="width:5px;height:5px;background:#4ecdc4;border-radius:50%"></div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:8px;margin-left:4px">
+              <div style="width:5px;height:5px;background:#4ecdc4;border-radius:50%"></div>
+              <div style="width:5px;height:5px;background:#4ecdc4;border-radius:50%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div style="background:var(--bg-tertiary);border-radius:6px;padding:6px;text-align:center">
+          <div style="font-size:14px;font-weight:700;color:#34c759">32:14</div>
+          <div style="font-size:9px;color:var(--text-secondary)">端正坐姿</div>
+        </div>
+        <div style="background:var(--bg-tertiary);border-radius:6px;padding:6px;text-align:center">
+          <div style="font-size:14px;font-weight:700;color:#ff9f0a">02:41</div>
+          <div style="font-size:9px;color:var(--text-secondary)">弓腰/趴着</div>
+        </div>
+      </div>
+
+      <!-- 45min Progress -->
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-secondary);margin-bottom:3px">
+          <span>离下次休息</span><span>12:46 后</span>
+        </div>
+        <div style="background:var(--bg-tertiary);border-radius:4px;height:6px">
+          <div style="background:#0a84ff;height:6px;border-radius:4px;width:72%"></div>
+        </div>
+      </div>
+
+      <!-- Start/Stop Button -->
+      <div style="background:#ff3b30;border-radius:8px;padding:7px;text-align:center;color:white;font-size:11px;font-weight:600">⏹ 停止检测</div>
+    </div>
+  </div>
+
+  <!-- Stats Page -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:13px;text-align:center">📊 stats（统计）</div>
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:11px">
+
+      <!-- Tab -->
+      <div style="display:flex;background:var(--bg-tertiary);border-radius:6px;margin-bottom:10px">
+        <div style="flex:1;background:var(--bg-secondary);border-radius:5px;padding:4px;text-align:center;font-weight:600;font-size:10px;box-shadow:0 1px 3px rgba(0,0,0,0.1)">今日</div>
+        <div style="flex:1;padding:4px;text-align:center;font-size:10px;color:var(--text-secondary)">本周</div>
+      </div>
+
+      <!-- Ring Chart placeholder -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:60px;height:60px;border-radius:50%;background:conic-gradient(#34c759 0% 70%, #ff9f0a 70% 82%, #ff3b30 82% 88%, var(--bg-tertiary) 88%);flex-shrink:0"></div>
+        <div style="font-size:10px;line-height:2">
+          <div><span style="color:#34c759">●</span> 端正 1h 52m</div>
+          <div><span style="color:#ff9f0a">●</span> 弓腰 16m</div>
+          <div><span style="color:#ff3b30">●</span> 趴着 8m</div>
+          <div><span style="color:var(--text-secondary)">●</span> 未使用</div>
+        </div>
+      </div>
+
+      <!-- Bar Chart placeholder -->
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px">近7天端正坐姿（分钟）</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:50px">
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:60%"></div>
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:80%"></div>
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:45%"></div>
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:90%"></div>
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:70%"></div>
+        <div style="flex:1;background:#34c759;border-radius:2px 2px 0 0;height:55%"></div>
+        <div style="flex:1;background:#0a84ff;border-radius:2px 2px 0 0;height:40%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text-secondary);margin-top:2px">
+        <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>今天</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges Page -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:13px;text-align:center">🏅 badges（勋章）</div>
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:11px">
+
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px">已获得 3 / 8 枚</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <!-- Earned -->
+        <div style="background:#fdf6e3;border:1.5px solid #ff9f0a;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:22px">🎯</div>
+          <div style="font-weight:600;font-size:10px;color:#b06000;margin-top:2px">初次体验</div>
+          <div style="font-size:9px;color:#b06000;opacity:0.7">06-15 获得</div>
+        </div>
+        <div style="background:#fdf6e3;border:1.5px solid #ff9f0a;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:22px">☕</div>
+          <div style="font-weight:600;font-size:10px;color:#b06000;margin-top:2px">第一次休息</div>
+          <div style="font-size:9px;color:#b06000;opacity:0.7">06-15 获得</div>
+        </div>
+        <div style="background:#e8f7ee;border:1.5px solid #34c759;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:22px">⏱</div>
+          <div style="font-weight:600;font-size:10px;color:#1a7a3a;margin-top:2px">坚持30分钟</div>
+          <div style="font-size:9px;color:#1a7a3a;opacity:0.7">06-16 获得</div>
+        </div>
+        <!-- Locked -->
+        <div style="background:var(--bg-tertiary);border:1.5px solid var(--border);border-radius:8px;padding:8px;text-align:center;opacity:0.5">
+          <div style="font-size:22px">🏆</div>
+          <div style="font-weight:600;font-size:10px;margin-top:2px">坚持10小时</div>
+          <div style="font-size:9px;color:var(--text-secondary)">累计端正10h</div>
+        </div>
+        <div style="background:var(--bg-tertiary);border:1.5px solid var(--border);border-radius:8px;padding:8px;text-align:center;opacity:0.5">
+          <div style="font-size:22px">👁</div>
+          <div style="font-weight:600;font-size:10px;margin-top:2px">护眼卫士</div>
+          <div style="font-size:9px;color:var(--text-secondary)">7天不趴着</div>
+        </div>
+        <div style="background:var(--bg-tertiary);border:1.5px solid var(--border);border-radius:8px;padding:8px;text-align:center;opacity:0.5">
+          <div style="font-size:22px">💪</div>
+          <div style="font-weight:600;font-size:10px;margin-top:2px">劳逸达人</div>
+          <div style="font-size:9px;color:var(--text-secondary)">休息10次</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700;font-size:13px;text-align:center">⚙️ settings（设置）</div>
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:11px">
+
+      <div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase">提醒方式</div>
+      <div style="display:flex;background:var(--bg-tertiary);border-radius:6px;margin-bottom:12px">
+        <div style="flex:1;background:#0a84ff;border-radius:5px;padding:5px;text-align:center;color:white;font-size:10px;font-weight:600">🔊 语音</div>
+        <div style="flex:1;padding:5px;text-align:center;font-size:10px;color:var(--text-secondary)">📳 震动</div>
+        <div style="flex:1;padding:5px;text-align:center;font-size:10px;color:var(--text-secondary)">🔇 静音</div>
+      </div>
+
+      <div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase">检测灵敏度</div>
+      <div style="display:flex;background:var(--bg-tertiary);border-radius:6px;margin-bottom:12px">
+        <div style="flex:1;padding:5px;text-align:center;font-size:10px;color:var(--text-secondary)">宽松</div>
+        <div style="flex:1;background:#0a84ff;border-radius:5px;padding:5px;text-align:center;color:white;font-size:10px;font-weight:600">标准</div>
+        <div style="flex:1;padding:5px;text-align:center;font-size:10px;color:var(--text-secondary)">严格</div>
+      </div>
+
+      <div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase">坐满提醒（分钟）</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="background:var(--bg-tertiary);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">−</div>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:16px">45</div>
+        <div style="background:var(--bg-tertiary);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">+</div>
+      </div>
+
+      <div style="font-size:10px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase">连续弓腰触发提醒（秒）</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="background:var(--bg-tertiary);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">−</div>
+        <div style="flex:1;text-align:center;font-weight:700;font-size:16px">3</div>
+        <div style="background:var(--bg-tertiary);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px">+</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;padding:10px 14px;background:var(--bg-tertiary);border-radius:8px;font-size:12px;color:var(--text-secondary)">
+  底部 TabBar：📷 检测 · 📊 统计 · 🏅 勋章 · ⚙️ 设置
+</div>

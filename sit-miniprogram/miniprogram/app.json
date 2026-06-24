@@ -1,0 +1,31 @@
+{
+  "pages": [
+    "pages/monitor/index",
+    "pages/stats/index",
+    "pages/badges/index",
+    "pages/settings/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "坐姿卫士",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#86868b",
+    "selectedColor": "#0a84ff",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/monitor/index", "text": "检测", "iconPath": "assets/icons/monitor.png", "selectedIconPath": "assets/icons/monitor-active.png" },
+      { "pagePath": "pages/stats/index",   "text": "统计", "iconPath": "assets/icons/stats.png",   "selectedIconPath": "assets/icons/stats-active.png" },
+      { "pagePath": "pages/badges/index",  "text": "勋章", "iconPath": "assets/icons/badges.png",  "selectedIconPath": "assets/icons/badges-active.png" },
+      { "pagePath": "pages/settings/index","text": "设置", "iconPath": "assets/icons/settings.png","selectedIconPath": "assets/icons/settings-active.png" }
+    ]
+  },
+  "permission": {
+    "scope.camera": { "desc": "坐姿检测需要使用摄像头" }
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "__usePrivacyCheck__": false
+}

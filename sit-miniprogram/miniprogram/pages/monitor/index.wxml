@@ -1,0 +1,67 @@
+<!-- miniprogram/pages/monitor/index.wxml -->
+<view class="container">
+
+  <!-- 坐姿状态卡片 -->
+  <view class="status-card status-{{postureType}}">
+    <text class="status-icon">{{statusIcon}}</text>
+    <text class="status-text">{{statusText}}</text>
+    <text class="status-timer">已坚持 {{streakTime}}</text>
+  </view>
+
+  <!-- 骨架可视化 canvas -->
+  <!-- VisionKit humanBody mode:1 (2D) 独占摄像头，不支持同时使用 <camera> 组件，
+       也不支持 setCanvas。此 canvas 仅用于绘制骨架关键点连接线（黑色背景） -->
+  <view class="canvas-wrap">
+    <canvas type="2d" id="vk-canvas" class="vk-canvas" />
+    <view wx:if="{{!detecting}}" class="canvas-placeholder">
+      <text>📷 点击「开始检测」启动摄像头</text>
+    </view>
+  </view>
+
+  <!-- 今日数据栏 -->
+  <view class="stats-row">
+    <view class="stat-item">
+      <text class="stat-value good">{{todayGoodTime}}</text>
+      <text class="stat-label">今日端正</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value bad">{{todayBadTime}}</text>
+      <text class="stat-label">弓腰/趴着</text>
+    </view>
+  </view>
+
+  <!-- 45 分钟进度条 -->
+  <view class="break-progress">
+    <view class="progress-header">
+      <text class="progress-label">距下次休息</text>
+      <text class="progress-value">{{breakCountdown}}</text>
+    </view>
+    <view class="progress-bar-bg">
+      <view class="progress-bar-fill" style="width:{{breakProgress}}%" />
+    </view>
+  </view>
+
+  <!-- 开始 / 停止按钮 -->
+  <view class="btn-detect {{detecting ? 'btn-stop' : 'btn-start'}}"
+        bindtap="onToggleDetect">
+    <text>{{detecting ? '⏹ 停止检测' : '▶️ 开始检测'}}</text>
+  </view>
+
+</view>
+
+<!-- 休息遮罩 -->
+<view wx:if="{{showBreakOverlay}}" class="break-overlay">
+  <view class="break-modal">
+    <text class="break-emoji">🧘</text>
+    <text class="break-title">该休息了！</text>
+    <text class="break-desc">已持续坐了 {{sittingMins}} 分钟\n站起来活动一下吧 🚶</text>
+    <view class="break-btn" bindtap="onConfirmBreak">好的，我去活动</view>
+  </view>
+</view>
+
+<!-- 勋章解锁弹出 -->
+<view wx:if="{{newBadge}}" class="badge-popup" bindtap="onDismissBadge">
+  <text class="badge-popup-icon">{{newBadge.icon}}</text>
+  <text class="badge-popup-name">解锁勋章：{{newBadge.name}}</text>
+  <text class="badge-popup-hint">点击关闭</text>
+</view>

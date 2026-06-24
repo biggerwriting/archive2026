@@ -1,0 +1,66 @@
+<h2>三种架构方案</h2>
+<p class="subtitle">选一个最适合这个项目的起点</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>单页极简（快速 MVP）</h3>
+      <p style="margin-bottom:10px">所有逻辑写在一个 Page 里：VisionKit 检测、计时器、提示、统计全部内联。底部 TabBar 切换「检测 / 统计 / 勋章」三个页面。</p>
+      <div style="background:var(--bg-tertiary);border-radius:8px;padding:10px;font-size:12px;font-family:monospace;line-height:1.8;margin-bottom:10px">
+        pages/<br>
+        ├── monitor/    ← VisionKit + 检测逻辑 + 计时<br>
+        ├── stats/      ← 读 Storage 展示图表<br>
+        └── badges/     ← 勋章列表
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>✅ 优点</h4><ul><li>开发最快（2–3周可完成）</li><li>代码量少，容易 debug</li><li>没有多余抽象</li></ul></div>
+        <div class="cons"><h4>⚠️ 缺点</h4><ul><li>monitor 页面会变得很大</li><li>后期加云同步要大改</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>服务层分离（推荐 ⭐）</h3>
+      <p style="margin-bottom:10px">抽出 <code>PostureService</code>（检测逻辑）+ <code>SessionStore</code>（计时 & 统计）两个独立模块，页面只负责展示。加云同步时只需改 Store，页面不动。</p>
+      <div style="background:var(--bg-tertiary);border-radius:8px;padding:10px;font-size:12px;font-family:monospace;line-height:1.8;margin-bottom:10px">
+        services/<br>
+        ├── PostureService.js  ← VisionKit + 判姿逻辑<br>
+        ├── SessionStore.js    ← 计时、统计、勋章触发<br>
+        └── AlertService.js    ← 语音/震动/静音策略<br>
+        pages/<br>
+        ├── monitor/  stats/  badges/  settings/
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>✅ 优点</h4><ul><li>逻辑与 UI 解耦，易于测试</li><li>后期加云同步只改 Store 层</li><li>多页面共享同一检测状态</li></ul></div>
+        <div class="cons"><h4>⚠️ 缺点</h4><ul><li>比方案 A 多 1 周开发量</li><li>需要理解模块化设计</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Worker 线程分离（过度设计）</h3>
+      <p style="margin-bottom:10px">把姿态推理放到 Worker 线程，UI 线程只处理渲染，理论上最流畅。但微信小程序 VisionKit 本身不支持在 Worker 中调用，需要折中方案。</p>
+      <div style="background:var(--bg-tertiary);border-radius:8px;padding:10px;font-size:12px;font-family:monospace;line-height:1.8;margin-bottom:10px">
+        workers/<br>
+        └── postureWorker.js  ← 仅计算，不含 VisionKit<br>
+        pages/<br>
+        └── monitor/  ← VisionKit 仍在主线程
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>✅ 优点</h4><ul><li>理论上 UI 更流畅</li></ul></div>
+        <div class="cons"><h4>⚠️ 缺点</h4><ul><li>VisionKit 无法在 Worker 运行</li><li>实际收益有限</li><li>调试复杂度翻倍</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;padding:12px 16px;background:var(--selected-bg);border:1px solid var(--selected-border);border-radius:8px;font-size:13px">
+  💡 <strong>我的推荐是 B</strong>：服务层分离，既不过度设计，又为你选择的「先本地后云同步」预留了干净的扩展点。
+</div>
