@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>网页冲浪时间 — 完整统计</title>
+  <link rel="stylesheet" href="stats.css" />
+</head>
+<body>
+<div class="page">
+
+  <!-- 顶部标题栏 -->
+  <header class="page-header">
+    <div class="page-title">
+      <div class="logo">⏱</div>
+      <h1>网页冲浪时间记录</h1>
+    </div>
+    <div class="controls">
+      <span class="date-label">从</span>
+      <input type="date" id="dateFrom" />
+      <span class="date-label">到</span>
+      <input type="date" id="dateTo" />
+      <button class="btn btn-primary" id="btnQuery">查询</button>
+    </div>
+  </header>
+
+  <!-- 快速日期范围 -->
+  <div class="quick-range">
+    <button class="quick-btn active" data-range="today">今天</button>
+    <button class="quick-btn" data-range="yesterday">昨天</button>
+    <button class="quick-btn" data-range="week">最近 7 天</button>
+    <button class="quick-btn" data-range="month">最近 30 天</button>
+    <button class="quick-btn" data-range="all">全部</button>
+  </div>
+
+  <!-- 摘要卡片 -->
+  <div class="summary-cards">
+    <div class="card">
+      <div class="card-label">总上网时长</div>
+      <div class="card-value accent" id="cardTotal">--</div>
+      <div class="card-sub" id="cardDateRange">--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">访问网站数</div>
+      <div class="card-value" id="cardSites">--</div>
+      <div class="card-sub">个不同域名</div>
+    </div>
+    <div class="card">
+      <div class="card-label">最常访问</div>
+      <div class="card-value green" id="cardTop" style="font-size:16px;">--</div>
+      <div class="card-sub" id="cardTopTime">--</div>
+    </div>
+    <div class="card">
+      <div class="card-label">URL 访问记录</div>
+      <div class="card-value" id="cardUrls">--</div>
+      <div class="card-sub">条具体页面</div>
+    </div>
+  </div>
+
+  <!-- 图表 -->
+  <div class="chart-section">
+    <div class="section-title">各网站时长分布（Top 10）</div>
+    <canvas id="chart" height="260"></canvas>
+  </div>
+
+  <!-- 明细表格 -->
+  <div class="table-section">
+    <div class="table-header">
+      <span class="section-title" style="margin:0">访问明细</span>
+      <div class="export-area">
+        <button class="btn btn-export" id="btnCsv">⬇ 导出 CSV</button>
+        <button class="btn btn-export" id="btnJson">⬇ 导出 JSON</button>
+      </div>
+    </div>
+
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th class="td-rank">#</th>
+          <th data-col="domain">网站域名</th>
+          <th data-col="totalTime" class="sorted">时长 ↓</th>
+          <th data-col="pct">占比</th>
+          <th>具体页面</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-icon">⏳</div>
+              正在加载数据…
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+<script src="stats.js"></script>
+</body>
+</html>

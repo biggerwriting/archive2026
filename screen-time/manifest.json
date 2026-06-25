@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "网页冲浪时间记录",
+  "version": "1.0.0",
+  "description": "记录你在各网站上花费的时间，按域名汇总，支持导出 CSV / JSON",
+  "permissions": ["tabs", "storage", "alarms"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "网页冲浪时间记录",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

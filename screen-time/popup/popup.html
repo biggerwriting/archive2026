@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>网页冲浪时间记录</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- 顶部栏 -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">⏱</div>
+      <span class="title">今日上网时长</span>
+    </div>
+    <span class="date-badge" id="dateBadge">--</span>
+  </header>
+
+  <!-- 今日总时长 -->
+  <div class="summary">
+    <span class="total-label"><span class="live-dot"></span>今日</span>
+    <span class="total-time" id="totalTime">--</span>
+  </div>
+
+  <!-- 网站列表 -->
+  <div class="section-label">访问最多的网站</div>
+  <div class="site-list" id="siteList">
+    <div class="empty">
+      <div class="empty-icon">🌐</div>
+      正在加载数据…
+    </div>
+  </div>
+
+  <!-- 底部按钮 -->
+  <footer class="footer">
+    <a class="btn-stats" id="btnStats" href="#">📊 查看完整统计</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
