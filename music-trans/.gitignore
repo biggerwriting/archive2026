@@ -1,0 +1,7 @@
+.vscode/
+venv*
+__pycache__
+.vscode
+music
+output
+.DS_Store
