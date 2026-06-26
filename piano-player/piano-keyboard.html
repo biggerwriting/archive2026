@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🎹 键盘钢琴演奏器</title>
+
+<!-- WebAudioFont player (tiny, ~15KB) -->
+<script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#111827;color:#e5e7eb;font-family:'Segoe UI',system-ui,sans-serif}
+
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;padding:10px 14px 8px;gap:0}
+
+#app h1{font-size:1.15rem;font-weight:700;color:#a78bfa;letter-spacing:2px;flex-shrink:0;margin-bottom:6px}
+
+/* ── Top bar ── */
+.top-bar{width:100%;flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.timbre-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.timbre-group label{font-size:0.72rem;color:#9ca3af}
+.timbre-btn{
+  padding:3px 10px;border-radius:20px;border:1.5px solid #374151;
+  background:#1f2937;color:#9ca3af;cursor:pointer;font-size:0.72rem;
+  transition:all 0.15s;line-height:1.4;position:relative;
+}
+.timbre-btn.active{background:#4f46e5;border-color:#818cf8;color:#fff}
+.timbre-btn:hover:not(.active){border-color:#6366f1;color:#c7d2fe}
+.timbre-btn.loading{color:#fbbf24;border-color:#d97706}
+.timbre-btn .load-dot{display:none}
+.timbre-btn.loading .load-dot{display:inline;animation:blink .7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Spectrogram ── */
+.spec-section{width:100%;flex-shrink:0;margin-bottom:6px}
+.spec-header{
+  display:grid;
+  /* legend | key-freq(fixed) | mic-freq(fixed) | rec-controls */
+  grid-template-columns: auto 1fr 90px 90px auto;
+  align-items:center;font-size:0.7rem;color:#6b7280;margin-bottom:3px;gap:6px;
+}
+.spec-header .cur-freq{
+  color:#7dd3fc;font-weight:600;
+  width:90px;text-align:center;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+}
+.spec-header .mic-freq{
+  color:#fb923c;font-weight:600;
+  width:90px;text-align:center;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+}
+.mic-legend{display:flex;align-items:center;gap:10px;font-size:0.65rem;white-space:nowrap}
+.mic-legend span{display:flex;align-items:center;gap:3px}
+.mic-legend i{display:inline-block;width:18px;height:3px;border-radius:2px}
+.legend-key{background:#6366f1}
+.legend-mic{background:#f97316}
+#specCanvas{width:100%;display:block;background:#0a0f1e;border:1px solid #1f2937;border-radius:8px}
+/* ── Recording controls ── */
+.rec-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.rc-btn{
+  padding:3px 9px;border-radius:20px;border:1.5px solid #374151;
+  background:#1f2937;color:#9ca3af;cursor:pointer;font-size:0.7rem;
+  transition:all .15s;white-space:nowrap;line-height:1.5;
+}
+.rc-btn:hover:not(:disabled){border-color:#6366f1;color:#c7d2fe}
+.rc-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+.rc-btn.rec-active{background:#7f1d1d;border-color:#ef4444;color:#fca5a5;animation:rec-pulse .9s ease-in-out infinite}
+.rc-btn.play-active{background:#14532d;border-color:#22c55e;color:#86efac}
+.rc-time{font-size:0.68rem;color:#6b7280;min-width:32px;text-align:right}
+@keyframes rec-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ── Game panel ── */
+.game-panel{
+  width:100%;flex-shrink:0;background:#0f172a;border:1px solid #1e293b;border-radius:10px;
+  padding:8px 14px;display:flex;flex-direction:column;gap:5px;margin-bottom:6px;
+}
+.game-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.game-title{font-size:0.75rem;color:#6b7280;white-space:nowrap;font-weight:600}
+.game-level{
+  font-size:0.68rem;font-weight:700;padding:1px 7px;border-radius:20px;white-space:nowrap;
+  background:#1e3a5f;border:1px solid #3b82f6;color:#93c5fd;
+}
+.game-status{font-size:0.82rem;font-weight:600;color:#fbbf24;min-height:18px}
+.game-status.correct{color:#34d399}
+.game-status.wrong  {color:#f87171}
+.game-status.idle   {color:#6b7280}
+.game-status.playing{color:#60a5fa}
+.btn-game{padding:5px 14px;border-radius:7px;border:none;cursor:pointer;font-size:0.75rem;font-weight:600;background:#7c3aed;color:#fff;transition:background .15s;white-space:nowrap}
+.btn-game:hover{background:#6d28d9}
+.game-score{font-size:0.75rem;color:#818cf8;white-space:nowrap}
+.hint-btn{padding:4px 10px;border-radius:7px;border:1.5px solid #374151;background:transparent;color:#9ca3af;cursor:pointer;font-size:0.72rem;transition:all .15s;white-space:nowrap}
+.hint-btn:hover:not(:disabled){border-color:#6366f1;color:#a5b4fc}
+.hint-btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.quit-btn{border-color:#7f1d1d;color:#f87171}
+.quit-btn:hover:not(:disabled){border-color:#ef4444;color:#fca5a5;background:rgba(239,68,68,.1)}
+
+/* ── Game settings ── */
+.game-settings{display:flex;gap:16px;flex-wrap:wrap;padding-top:2px}
+.settings-col{display:flex;flex-direction:column;gap:4px}
+.settings-label{font-size:0.65rem;color:#6b7280;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.note-checkboxes{display:flex;gap:4px;flex-wrap:wrap}
+.note-cb-item{display:flex;align-items:center;gap:3px;cursor:pointer}
+.note-cb-item input{width:11px;height:11px;accent-color:#6366f1;cursor:pointer}
+.note-cb-item span{font-size:0.65rem;color:#9ca3af;white-space:nowrap}
+.note-cb-item input:checked + span{color:#a5b4fc;font-weight:600}
+.note-cb-item span.sharp-label{color:#f472b6}
+.note-cb-item input:checked + span.sharp-label{color:#f9a8d4}
+
+/* ── Active note chips ── */
+.active-notes{flex-shrink:0;width:100%;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;min-height:20px;margin-bottom:5px}
+.note-chip{background:#312e81;border:1px solid #4338ca;border-radius:20px;padding:1px 8px;font-size:0.68rem;color:#a5b4fc;animation:fadeIn .08s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ── Keyboard ── */
+.keyboard-wrap{width:100%;flex:1;min-height:0;display:flex;flex-direction:column}
+.keyboard-section{flex:1;min-height:0;display:flex;flex-direction:column;gap:0}
+.note-labels{display:grid;grid-template-columns:22px repeat(12,1fr);gap:2px;margin-bottom:2px;flex-shrink:0}
+.note-label{text-align:center;font-size:.55rem;color:#818cf8;font-weight:600;line-height:1.2}
+.note-label.sharp{color:#f472b6}
+.octave-row{display:grid;grid-template-columns:22px repeat(12,1fr);gap:2px;flex:1;min-height:0;align-items:stretch}
+.octave-num{display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#4b5563;font-weight:600}
+.key-btn{
+  border-radius:6px;border:1.5px solid #1f2937;background:#1e293b;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .06s,border-color .06s,transform .06s;
+  user-select:none;-webkit-user-select:none;position:relative;overflow:hidden;min-height:0;
+}
+.key-btn:hover{border-color:#4f46e5;background:#1e2a4a}
+.key-btn.active{background:#4f46e5;border-color:#818cf8;transform:scale(.91);box-shadow:0 0 8px rgba(99,102,241,.7)}
+.key-btn.sharp-key{background:#0d1117;border-color:#1f2937}
+.key-btn.sharp-key:hover{border-color:#ec4899;background:#1a0d25}
+.key-btn.sharp-key.active{background:#9d174d;border-color:#f472b6;box-shadow:0 0 8px rgba(244,114,182,.7)}
+.key-btn.target-key{border-color:#f59e0b !important;box-shadow:0 0 10px rgba(245,158,11,.6) !important;animation:pulse-target 1s ease-in-out infinite}
+@keyframes pulse-target{0%,100%{box-shadow:0 0 6px rgba(245,158,11,.4)}50%{box-shadow:0 0 16px rgba(245,158,11,.9)}}
+.key-note{font-size:.48rem;color:#6b7280;line-height:1;pointer-events:none}
+.key-btn.active .key-note{color:#c7d2fe}
+.key-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.22);transform:scale(0);pointer-events:none;width:16px;height:16px;left:calc(50% - 8px);top:calc(50% - 8px)}
+.key-ripple.animate{animation:ripple .35s linear forwards}
+@keyframes ripple{to{transform:scale(5);opacity:0}}
+
+.info-bar{flex-shrink:0;font-size:.62rem;color:#374151;text-align:center;padding-top:3px}
+
+/* ── Keyboard shortcut hint overlay on keys ── */
+.key-shortcut{
+  position:absolute;bottom:2px;left:0;right:0;
+  text-align:center;font-size:.5rem;color:#4b5563;
+  line-height:1;pointer-events:none;font-weight:600;letter-spacing:0;
+}
+.key-btn.has-shortcut .key-shortcut{ color:#6366f1; }
+.key-btn.sharp-key.has-shortcut .key-shortcut{ color:#f472b6; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <h1>🎹 键盘钢琴演奏器</h1>
+
+  <div class="top-bar">
+    <div class="timbre-group">
+      <label>音色：</label>
+      <button class="timbre-btn active" data-timbre="piano">🎹 钢琴<span class="load-dot">…</span></button>
+      <button class="timbre-btn" data-timbre="guitar">🎸 吉他<span class="load-dot">…</span></button>
+      <button class="timbre-btn" data-timbre="violin">🎻 提琴<span class="load-dot">…</span></button>
+      <button class="timbre-btn" data-timbre="flute">🎵 长笛<span class="load-dot">…</span></button>
+      <button class="timbre-btn" data-timbre="organ">🎺 管风琴<span class="load-dot">…</span></button>
+      <button class="timbre-btn" data-timbre="sine">〜 正弦波</button>
+    </div>
+  </div>
+
+  <div class="spec-section">
+    <div class="spec-header">
+      <div class="mic-legend">
+        <span><i class="legend-key"></i>琴键</span>
+        <span><i class="legend-mic"></i>麦克风</span>
+      </div>
+      <span><!-- spacer --></span>
+      <span class="cur-freq" id="curFreqDisplay">— Hz</span>
+      <span class="mic-freq" id="micFreqDisplay">— Hz</span>
+      <div class="rec-controls">
+        <button class="rc-btn" id="btnRec">⏺ 录音</button>
+        <button class="rc-btn" id="btnPause" disabled>⏸ 暂停</button>
+        <button class="rc-btn" id="btnPlay" disabled>▶ 播放</button>
+        <span class="rc-time" id="recTime">0.0s</span>
+      </div>
+    </div>
+    <canvas id="specCanvas"></canvas>
+  </div>
+
+  <div class="game-panel" id="gamePanel">
+    <!-- 标题行 -->
+    <div class="game-row">
+      <span class="game-title">🎮 听音猜键</span>
+      <span class="game-level" id="gameLevelBadge" style="display:none"></span>
+      <span class="game-score" id="gameScore" style="margin-left:auto"></span>
+      <button class="hint-btn" id="hintBtn" disabled>🔊 重播</button>
+      <button class="hint-btn" id="nextBtn" style="display:none">⏭ 下一题</button>
+      <button class="hint-btn quit-btn" id="quitBtn" style="display:none">✕ 退出</button>
+      <button class="btn-game" id="startGameBtn">开始游戏</button>
+    </div>
+    <!-- 状态行 -->
+    <div class="game-status idle" id="gameStatus">按「开始」后台播放随机音，找到并按下对应的琴键</div>
+    <!-- 设置行（游戏外显示） -->
+    <div class="game-settings" id="gameSettings">
+      <div class="settings-col">
+        <div class="settings-label">出题范围（音名）</div>
+        <div class="note-checkboxes" id="noteCheckboxes"></div>
+      </div>
+      <div class="settings-col">
+        <div class="settings-label">八度</div>
+        <div class="note-checkboxes" id="octCheckboxes"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="active-notes" id="activeNotes"></div>
+
+  <div class="keyboard-wrap">
+    <div class="keyboard-section" id="keyboardSection"></div>
+  </div>
+
+  <div class="info-bar">鼠标按下发声 · 键盘快捷键：<b style="color:#6366f1">A S D F G H J K</b> = C D E F G A B C（中央C组）&nbsp;|&nbsp;<b style="color:#f472b6">W E T Y U</b> = 黑键 · 支持和弦</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  WebAudio context + WebAudioFont player
+// ═══════════════════════════════════════════════════════════
+const audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
+const wafPlayer  = new WebAudioFontPlayer();
+
+// Master output gain (volume control)
+const masterGain = audioCtx.createGain();
+masterGain.gain.value = 0.8;
+masterGain.connect(audioCtx.destination);
+
+function resumeCtx(){ if(audioCtx.state==='suspended') audioCtx.resume(); }
+
+// ── Instrument definitions ────────────────────────────────
+// Each entry: { url, variable }  — loaded lazily on first use
+const BASE = 'https://surikov.github.io/webaudiofontdata/sound/';
+
+const INSTRUMENTS = {
+  piano:  { url: BASE+'0000_JCLive_sf2_file.js',              varName:'_tone_0000_JCLive_sf2_file'              },
+  guitar: { url: BASE+'0250_Acoustic_Guitar_sf2_file.js',     varName:'_tone_0250_Acoustic_Guitar_sf2_file'     },
+  violin: { url: BASE+'0400_Aspirin_sf2_file.js',             varName:'_tone_0400_Aspirin_sf2_file'             },
+  flute:  { url: BASE+'0730_JCLive_sf2_file.js',              varName:'_tone_0730_JCLive_sf2_file'              },
+  organ:  { url: BASE+'0190_JCLive_sf2_file.js',              varName:'_tone_0190_JCLive_sf2_file'              },
+};
+// Fallback URLs if primary 404s
+const FALLBACK = {
+  piano:  { url: BASE+'0000_FluidR3_GM_sf2_file.js',          varName:'_tone_0000_FluidR3_GM_sf2_file'          },
+  guitar: { url: BASE+'0250_FluidR3_GM_sf2_file.js',          varName:'_tone_0250_FluidR3_GM_sf2_file'          },
+  violin: { url: BASE+'0400_FluidR3_GM_sf2_file.js',          varName:'_tone_0400_FluidR3_GM_sf2_file'          },
+  flute:  { url: BASE+'0730_FluidR3_GM_sf2_file.js',          varName:'_tone_0730_FluidR3_GM_sf2_file'          },
+  organ:  { url: BASE+'0190_FluidR3_GM_sf2_file.js',          varName:'_tone_0190_FluidR3_GM_sf2_file'          },
+};
+
+const loadedPresets = {};   // timbre → preset object (window[varName])
+const loadingPromise = {};  // timbre → Promise (deduplicate concurrent loads)
+
+function loadPreset(timbre){
+  if(loadedPresets[timbre])  return Promise.resolve(loadedPresets[timbre]);
+  if(loadingPromise[timbre]) return loadingPromise[timbre];
+
+  const def = INSTRUMENTS[timbre];
+  const btn = document.querySelector(`.timbre-btn[data-timbre="${timbre}"]`);
+  if(btn) btn.classList.add('loading');
+
+  loadingPromise[timbre] = new Promise(resolve => {
+    // Try primary, fall back on error
+    function tryLoad(info){
+      wafPlayer.loader.startLoad(audioCtx, info.url, info.varName);
+      wafPlayer.loader.waitLoad(()=>{
+        const preset = window[info.varName];
+        if(preset){
+          loadedPresets[timbre] = preset;
+          if(btn) btn.classList.remove('loading');
+          resolve(preset);
+        } else if(FALLBACK[timbre] && info !== FALLBACK[timbre]){
+          tryLoad(FALLBACK[timbre]);
+        } else {
+          // both failed — resolve null, will fall back to sine
+          if(btn) btn.classList.remove('loading');
+          resolve(null);
+        }
+      });
+    }
+    tryLoad(def);
+  });
+
+  return loadingPromise[timbre];
+}
+
+// Preload piano immediately in background
+loadPreset('piano');
+
+// ── Active voices ─────────────────────────────────────────
+// noteId → { envelope (WAF) | oscillators (sine), stop() }
+const activeVoices = new Map();
+let   currentTimbre = 'piano';
+
+function midiToFreq(m){ return 440*Math.pow(2,(m-69)/12); }
+
+// ── Play via WebAudioFont ─────────────────────────────────
+function startNoteWAF(noteId, midi, preset){
+  if(activeVoices.has(noteId)) return;
+  resumeCtx();
+  // duration=9999 = hold indefinitely; cancel() on release
+  const envelope = wafPlayer.queueWaveTable(
+    audioCtx, masterGain, preset,
+    audioCtx.currentTime, midi, 9999, 0.8
+  );
+  activeVoices.set(noteId, {
+    stop(){ try{ envelope.cancel(); }catch(e){} }
+  });
+}
+
+// ── Play via oscillator (sine fallback) ───────────────────
+const SINE_DEF = {
+  partials:[{type:'sine',gainVal:.55,detune:0},{type:'triangle',gainVal:.2,detune:0}],
+  attack:0.01, decay:0.1, sustain:0.85, release:0.3
+};
+function startNoteSine(noteId, freq){
+  if(activeVoices.has(noteId)) return;
+  resumeCtx();
+  const gn=audioCtx.createGain(), now=audioCtx.currentTime;
+  gn.gain.setValueAtTime(0,now);
+  gn.gain.linearRampToValueAtTime(0.5,now+SINE_DEF.attack);
+  gn.gain.setTargetAtTime(0.5*SINE_DEF.sustain,now+SINE_DEF.attack,SINE_DEF.decay);
+  gn.connect(masterGain);
+  const oscs=[];
+  SINE_DEF.partials.forEach(p=>{
+    const o=audioCtx.createOscillator(), g2=audioCtx.createGain();
+    o.type=p.type; o.frequency.value=freq; o.detune.value=p.detune||0;
+    g2.gain.value=p.gainVal; o.connect(g2); g2.connect(gn); o.start();
+    oscs.push(o);
+  });
+  activeVoices.set(noteId,{
+    stop(){
+      const t=audioCtx.currentTime;
+      gn.gain.cancelScheduledValues(t);
+      gn.gain.setValueAtTime(gn.gain.value,t);
+      gn.gain.exponentialRampToValueAtTime(0.0001,t+SINE_DEF.release);
+      oscs.forEach(o=>o.stop(t+SINE_DEF.release+0.05));
+    }
+  });
+}
+
+// ── Unified start ─────────────────────────────────────────
+async function startNote(noteId, midi, freq){
+  if(activeVoices.has(noteId)) return;
+  if(currentTimbre==='sine'){
+    startNoteSine(noteId, freq); return;
+  }
+  const preset = await loadPreset(currentTimbre);
+  if(!preset){ startNoteSine(noteId, freq); return; }
+  // If voice was pressed while loading, start it now
+  startNoteWAF(noteId, midi, preset);
+}
+
+function stopNote(noteId){
+  if(!activeVoices.has(noteId)) return;
+  activeVoices.get(noteId).stop();
+  activeVoices.delete(noteId);
+}
+
+// ── Timbre buttons ────────────────────────────────────────
+document.querySelectorAll('.timbre-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.timbre-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTimbre=btn.dataset.timbre;
+    if(currentTimbre!=='sine') loadPreset(currentTimbre); // preload in background
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+//  Keyboard layout  (octaves 2–6)
+// ═══════════════════════════════════════════════════════════
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SHARP_IDX =new Set([1,3,6,8,10]);
+const OCTAVES   =[2,3,4,5,6];
+
+function noteId(oct,ni){ return `${oct}-${ni}`; }
+function midiNote(oct,ni){ return (oct+1)*12+ni; }
+
+const kbSection=document.getElementById('keyboardSection');
+
+const labelRow=document.createElement('div');
+labelRow.className='note-labels';
+labelRow.appendChild(document.createElement('div'));
+NOTE_NAMES.forEach((n,i)=>{
+  const d=document.createElement('div');
+  d.className='note-label'+(SHARP_IDX.has(i)?' sharp':'');
+  d.textContent=n; labelRow.appendChild(d);
+});
+kbSection.appendChild(labelRow);
+
+OCTAVES.forEach(oct=>{
+  const row=document.createElement('div'); row.className='octave-row';
+  const num=document.createElement('div'); num.className='octave-num'; num.textContent=oct;
+  row.appendChild(num);
+  NOTE_NAMES.forEach((name,ni)=>{
+    const midi =midiNote(oct,ni);
+    const freq =midiToFreq(midi);
+    const id   =noteId(oct,ni);
+    const sharp=SHARP_IDX.has(ni);
+    const btn  =document.createElement('div');
+    btn.className='key-btn'+(sharp?' sharp-key':'');
+    btn.dataset.noteId=id; btn.dataset.freq=freq.toFixed(2);
+    btn.dataset.midi=midi; btn.dataset.label=`${name}${oct}`;
+    const lbl=document.createElement('span');
+    lbl.className='key-note'; lbl.textContent=`${name}${oct}`;
+    btn.appendChild(lbl);
+    btn.addEventListener('pointerdown',e=>{
+      e.preventDefault(); btn.setPointerCapture(e.pointerId);
+      pressKey(btn,id,midi,freq,`${name}${oct}`);
+    });
+    btn.addEventListener('pointerup',  ()=>releaseKey(btn,id,midi));
+    btn.addEventListener('pointerleave',()=>releaseKey(btn,id,midi));
+    btn.addEventListener('contextmenu',e=>e.preventDefault());
+    row.appendChild(btn);
+  });
+  kbSection.appendChild(row);
+});
+
+// ── Press / release ────────────────────────────────────────
+const pressedKeys=new Map(); // noteId → {label,midi,freq}
+
+// pendingCorrect: midi keys that were confirmed correct on press but awaiting release
+const pendingCorrect = new Set();
+
+function pressKey(btn,id,midi,freq,label){
+  if(pressedKeys.has(id)) return;
+  pressedKeys.set(id,{label,midi,freq});
+  btn.classList.add('active');
+  startNote(id,midi,freq);
+  addRipple(btn);
+  updateChips();
+  recordNoteOn(freq,midi);
+  checkGame(midi); // may add midi to pendingCorrect instead of firing sfx immediately
+}
+function releaseKey(btn,id,midi){
+  if(!pressedKeys.has(id)) return;
+  pressedKeys.delete(id);
+  btn.classList.remove('active');
+  stopNote(id);
+  updateChips();
+  recordNoteOff(midi);
+  // Fire deferred correct-answer sfx+advance now that key is released
+  if(pendingCorrect.has(midi)){
+    pendingCorrect.delete(midi);
+    firePendingCorrect(midi);
+  }
+}
+function addRipple(btn){
+  const r=document.createElement('span'); r.className='key-ripple';
+  btn.appendChild(r);
+  requestAnimationFrame(()=>r.classList.add('animate'));
+  r.addEventListener('animationend',()=>r.remove());
+}
+function updateChips(){
+  const c=document.getElementById('activeNotes'); c.innerHTML='';
+  pressedKeys.forEach(({label})=>{
+    const chip=document.createElement('div'); chip.className='note-chip';
+    chip.textContent=label; c.appendChild(chip);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Piano-roll spectrogram
+// ═══════════════════════════════════════════════════════════
+const specCanvas=document.getElementById('specCanvas');
+const sc=specCanvas.getContext('2d');
+const F_MIN=55, F_MAX=2100, WINDOW_SEC=5;
+const noteSegments=[], liveNotes=new Map();
+
+function noteColor(midi){ return `hsl(${(midi%12)*30},80%,62%)`; }
+function recordNoteOn(freq,midi){
+  const seg={freq,midi,startTime:audioCtx.currentTime,endTime:null,color:noteColor(midi)};
+  noteSegments.push(seg); liveNotes.set(midi,seg);
+  const cut=audioCtx.currentTime-WINDOW_SEC-.5;
+  while(noteSegments.length&&noteSegments[0].endTime!==null&&noteSegments[0].endTime<cut)
+    noteSegments.shift();
+}
+function recordNoteOff(midi){
+  if(liveNotes.has(midi)){ liveNotes.get(midi).endTime=audioCtx.currentTime; liveNotes.delete(midi); }
+}
+function freqToY(f,H){
+  const lo=Math.log2(F_MIN),hi=Math.log2(F_MAX);
+  return H*(1-(Math.log2(f)-lo)/(hi-lo));
+}
+
+function setCanvasHeight(){
+  specCanvas.style.height=Math.max(72,Math.round(window.innerHeight*.16))+'px';
+}
+setCanvasHeight(); window.addEventListener('resize',setCanvasHeight);
+
+// ═══════════════════════════════════════════════════════════
+//  Recording system  v3
+//  - MediaRecorder captures real audio blob → playback via <audio>
+//  - Pitch tracked separately for spectrogram display only
+//  - Fixed 10s window: after recording, canvas freezes; playhead moves
+// ═══════════════════════════════════════════════════════════
+const MIC_COLOR   = '#f97316';
+const REC_MAX_SEC = 10;
+
+// ── Mic / analyser ─────────────────────────────────────────
+let micStream    = null;
+let micAnalyser  = null;
+let mediaRec     = null;   // MediaRecorder
+let recChunks    = [];     // audio chunks
+let recAudioBlob = null;   // final blob after recording
+let recAudioEl   = null;   // <audio> element for playback
+
+// ── State machine: 'idle' | 'recording' | 'paused' ────────
+let recState     = 'idle';
+let recStartCtx  = 0;   // audioCtx.currentTime when current segment started
+let recElapsed   = 0;   // accumulated recorded seconds
+
+// ── Pitch events: [{t, freq}] built during recording ───────
+// t = seconds from recording start, freq = dominant pitch at that moment
+// Stored as a dense time-series sampled at ~30 fps
+const pitchTimeline = [];  // [{t, freq}]  freq=null for silence
+let recPitchInterval = null;
+
+// ── Playback state ──────────────────────────────────────────
+let pbActive     = false;
+let pbPaused     = false;
+let pbStartCtx   = 0;   // audioCtx.currentTime when play/resume started
+let pbOffset     = 0;   // cursor position in seconds when play/resume started
+
+// ── UI refs ────────────────────────────────────────────────
+const btnRec    = document.getElementById('btnRec');
+const btnPause  = document.getElementById('btnPause');
+const btnPlay   = document.getElementById('btnPlay');
+const recTimeEl = document.getElementById('recTime');
+
+btnRec.addEventListener('click',   onBtnRec);
+btnPause.addEventListener('click', onBtnPause);
+btnPlay.addEventListener('click',  onBtnPlay);
+
+function updateRecUI(){
+  const hasRec = recAudioBlob !== null;
+  const isRec  = recState === 'recording';
+  const isPaused = recState === 'paused';
+
+  btnRec.textContent = isRec ? '⏹ 停止' : (isPaused ? '⏺ 继续' : '⏺ 录音');
+  btnRec.classList.toggle('rec-active', isRec);
+
+  btnPause.disabled    = !isRec;
+  btnPause.textContent = '⏸ 暂停';
+
+  btnPlay.disabled     = !hasRec || isRec;
+  btnPlay.classList.toggle('play-active', pbActive && !pbPaused);
+  btnPlay.textContent  = (pbActive && !pbPaused) ? '⏸ 暂停播放' : (pbPaused ? '▶ 继续播放' : '▶ 播放');
+}
+
+// ── Acquire mic ────────────────────────────────────────────
+async function ensureMic(){
+  if(micStream) return true;
+  try{
+    if(audioCtx.state==='suspended') await audioCtx.resume();
+    micStream   = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    const src   = audioCtx.createMediaStreamSource(micStream);
+    micAnalyser = audioCtx.createAnalyser();
+    micAnalyser.fftSize = 4096;
+    micAnalyser.smoothingTimeConstant = 0.5;
+    src.connect(micAnalyser);
+    return true;
+  }catch(e){ alert('无法访问麦克风：'+e.message); return false; }
+}
+
+// ── Button handlers ────────────────────────────────────────
+async function onBtnRec(){
+  if(recState === 'recording'){ stopRecording(); return; }
+  if(recState === 'paused'){
+    // Resume recording
+    if(mediaRec && mediaRec.state === 'paused'){
+      mediaRec.resume();
+      recState    = 'recording';
+      recStartCtx = audioCtx.currentTime;
+      startPitchSampling();
+      updateRecUI();
+    }
+    return;
+  }
+  // Fresh start
+  stopPlayback();
+  pitchTimeline.length = 0;
+  noteLabels    = [];
+  recAudioBlob  = null;
+  recChunks     = [];
+  recElapsed    = 0;
+  if(!(await ensureMic())) return;
+
+  // MediaRecorder for real audio
+  const opts = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? {mimeType:'audio/webm;codecs=opus'} : {};
+  mediaRec = new MediaRecorder(micStream, opts);
+  mediaRec.ondataavailable = e=>{ if(e.data.size>0) recChunks.push(e.data); };
+  mediaRec.onstop = ()=>{
+    recAudioBlob = new Blob(recChunks, {type: mediaRec.mimeType||'audio/webm'});
+    if(recAudioEl) recAudioEl.src = '';
+    recAudioEl = new Audio(URL.createObjectURL(recAudioBlob));
+    recAudioEl.addEventListener('ended', ()=>{ pbActive=false; pbPaused=false; updateRecUI(); recTimeEl.textContent=recElapsed.toFixed(1)+'s'; });
+    updateRecUI();
+  };
+  mediaRec.start(100); // collect chunks every 100ms
+
+  recState    = 'recording';
+  recStartCtx = audioCtx.currentTime;
+  startPitchSampling();
+  updateRecUI();
+
+  // Auto-stop at REC_MAX_SEC
+  setTimeout(()=>{ if(recState==='recording') stopRecording(); }, REC_MAX_SEC*1000);
+}
+
+function onBtnPause(){
+  if(recState !== 'recording') return;
+  if(mediaRec && mediaRec.state === 'recording') mediaRec.pause();
+  stopPitchSampling();
+  recElapsed  += audioCtx.currentTime - recStartCtx;
+  recState     = 'paused';
+  updateRecUI();
+}
+
+function onBtnPlay(){
+  if(!recAudioEl) return;
+  if(pbActive && !pbPaused){
+    // Pause playback
+    recAudioEl.pause();
+    pbPaused  = true;
+    pbOffset += audioCtx.currentTime - pbStartCtx;
+    updateRecUI();
+    return;
+  }
+  if(pbPaused){
+    // Resume playback
+    recAudioEl.play();
+    pbStartCtx = audioCtx.currentTime;
+    pbPaused   = false;
+    pbActive   = true;
+    updateRecUI();
+    return;
+  }
+  // Fresh play from start
+  stopPlayback();
+  pbOffset   = 0;
+  pbStartCtx = audioCtx.currentTime;
+  pbActive   = true;
+  pbPaused   = false;
+  recAudioEl.currentTime = 0;
+  recAudioEl.play();
+  updateRecUI();
+}
+
+let _recEndCtx = 0;
+function stopRecording(){
+  stopPitchSampling();
+  _recEndCtx  = audioCtx.currentTime;
+  recElapsed += _recEndCtx - recStartCtx;
+  if(mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
+  recState = 'idle';
+  buildNoteLabels();   // compute note labels once recording is done
+  updateRecUI();
+}
+
+// ── Note label segments built once after recording ────────
+// Each entry: { label, tStart, tEnd, freq }
+// tStart/tEnd in recording-relative seconds
+let noteLabels = [];
+
+function buildNoteLabels(){
+  noteLabels = [];
+  if(pitchTimeline.length === 0) return;
+
+  // Group consecutive frames with similar pitch into segments
+  // "similar" = within 1 semitone of the first frame's MIDI note
+  const SEMITONE_THRESHOLD = 1.0;
+  const MIN_DURATION       = 0.12; // skip very short blips
+  const LABEL_MARGIN_PX    = 28;   // min pixel width to draw a label
+
+  let segStart = null, segMidi = null, freqSum = 0, count = 0;
+
+  function flush(tEnd){
+    if(segStart === null || count === 0) return;
+    const dur = tEnd - segStart.t;
+    if(dur < MIN_DURATION){ segStart=null; return; }
+    const avgFreq = freqSum / count;
+    const midi    = Math.round(12*Math.log2(avgFreq/440)+69);
+    const ni      = ((midi%12)+12)%12;
+    const oct     = Math.floor(midi/12)-1;
+    const label   = NOTE_NAMES[ni]+oct;
+    noteLabels.push({ label, tStart: segStart.t, tEnd, freq: avgFreq });
+    segStart = null; segMidi = null; freqSum = 0; count = 0;
+  }
+
+  for(const pt of pitchTimeline){
+    if(pt.freq === null){ flush(pt.t); continue; }
+    const midi = Math.round(12*Math.log2(pt.freq/440)+69);
+    if(segStart === null){
+      segStart = pt; segMidi = midi; freqSum = pt.freq; count = 1;
+    } else {
+      const semitones = Math.abs(midi - segMidi);
+      if(semitones > SEMITONE_THRESHOLD){
+        flush(pt.t);
+        segStart = pt; segMidi = midi; freqSum = pt.freq; count = 1;
+      } else {
+        freqSum += pt.freq; count++;
+      }
+    }
+  }
+  // flush last
+  if(pitchTimeline.length > 0){
+    flush(pitchTimeline[pitchTimeline.length-1].t + 0.033);
+  }
+}
+
+function stopPlayback(){
+  if(recAudioEl){ recAudioEl.pause(); recAudioEl.currentTime=0; }
+  pbActive = false; pbPaused = false; pbOffset = 0;
+  document.getElementById('micFreqDisplay').textContent = '— Hz';
+  updateRecUI();
+}
+
+// ── Pitch sampling (for display only) ─────────────────────
+// Sample pitch at ~30fps during recording; store as dense timeline
+function startPitchSampling(){
+  if(recPitchInterval) return;
+  recPitchInterval = setInterval(()=>{
+    if(recState !== 'recording') return;
+    const t    = recElapsed + (audioCtx.currentTime - recStartCtx);
+    const freq = detectPitch(micAnalyser);
+    pitchTimeline.push({t, freq}); // freq may be null (silence)
+  }, 33); // ~30fps
+}
+function stopPitchSampling(){
+  if(recPitchInterval){ clearInterval(recPitchInterval); recPitchInterval=null; }
+}
+
+// ── Pitch detector (autocorrelation, best-peak) ───────────
+function detectPitch(analyser){
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  const N = buf.length;
+  let rms = 0;
+  for(let i=0;i<N;i++) rms += buf[i]*buf[i];
+  if(Math.sqrt(rms/N) < 0.02) return null;
+  const SR = audioCtx.sampleRate;
+  const MIN_P = Math.ceil(SR/1200);
+  const MAX_P = Math.floor(SR/60);
+  // Normalized autocorrelation (YIN-inspired)
+  let bestP=-1, bestV=-1;
+  for(let lag=MIN_P; lag<=MAX_P; lag++){
+    let num=0,da=0,db=0;
+    for(let i=0;i<N-lag;i++){ num+=buf[i]*buf[i+lag]; da+=buf[i]*buf[i]; db+=buf[i+lag]*buf[i+lag]; }
+    const v = (da+db>0) ? num/Math.sqrt(da*db) : 0;
+    if(v > bestV){ bestV=v; bestP=lag; }
+  }
+  if(bestV < 0.6 || bestP < 1) return null;
+  return SR / bestP;
+}
+
+// ── Timer display ──────────────────────────────────────────
+function updateRecTime(){
+  requestAnimationFrame(updateRecTime);
+  if(recState==='recording'){
+    const t = recElapsed + (audioCtx.currentTime - recStartCtx);
+    recTimeEl.textContent = Math.min(t, REC_MAX_SEC).toFixed(1)+'s / '+REC_MAX_SEC+'s';
+  } else if(pbActive && !pbPaused && recAudioEl){
+    pbOffset + (audioCtx.currentTime - pbStartCtx); // keep in sync
+    recTimeEl.textContent = (pbOffset + audioCtx.currentTime - pbStartCtx).toFixed(1)+'s';
+  } else if(!pbActive && !pbPaused){
+    recTimeEl.textContent = recElapsed > 0 ? recElapsed.toFixed(1)+'s' : '0.0s';
+  }
+}
+updateRecTime();
+updateRecUI();
+
+// ── Spectrogram drawing ────────────────────────────────────
+// Two modes:
+//   • Live / idle : rolling 5-second window (keyboard notes)
+//   • Has recording : fixed 10-second window; playhead line moves
+let lastW=0, lastH=0;
+
+function drawSpec(){
+  requestAnimationFrame(drawSpec);
+  const dpr  = devicePixelRatio || 1;
+  const cssW = specCanvas.offsetWidth, cssH = specCanvas.offsetHeight;
+  if(!cssW || !cssH) return;
+  if(cssW !== lastW || cssH !== lastH){
+    specCanvas.width  = cssW*dpr;
+    specCanvas.height = cssH*dpr;
+    sc.scale(dpr,dpr); lastW=cssW; lastH=cssH;
+  }
+  const W = cssW, H = cssH;
+  const now = audioCtx.currentTime;
+
+  sc.fillStyle='#0a0f1e'; sc.fillRect(0,0,W,H);
+
+  // ── Decide window mode ──────────────────────────────────
+  // hasRec: use 10-second fixed window whenever we have recorded pitch data
+  const hasRec   = pitchTimeline.length > 0 || recAudioBlob !== null || recState !== 'idle';
+  const WIN      = hasRec ? REC_MAX_SEC : WINDOW_SEC;
+
+  // X-axis: time position → pixel X
+  // In live mode: right edge = now, left edge = now - WIN
+  // In frozen mode (has rec): left edge = 0, right edge = WIN
+  function tToX(t_abs){
+    // t_abs = audioCtx.currentTime-based timestamp
+    if(hasRec){
+      // convert to recording-relative time
+      const t_rec = recTimeOf(t_abs);
+      return W * t_rec / WIN;
+    } else {
+      return W * (t_abs - (now - WIN)) / WIN;
+    }
+  }
+  // For pitch timeline (already recording-relative)
+  function tRecToX(t_rec){ return W * t_rec / WIN; }
+
+  // ── Grid ────────────────────────────────────────────────
+  sc.strokeStyle='rgba(255,255,255,.04)'; sc.lineWidth=1;
+  for(let s=0; s<=WIN; s++){
+    const x = W*s/WIN;
+    sc.beginPath(); sc.moveTo(x,0); sc.lineTo(x,H); sc.stroke();
+  }
+  // C reference lines
+  [36,48,60,72,84].forEach(m=>{
+    const f=midiToFreq(m); if(f<F_MIN||f>F_MAX) return;
+    const y=freqToY(f,H);
+    sc.strokeStyle='rgba(99,102,241,.18)'; sc.lineWidth=1;
+    sc.beginPath(); sc.moveTo(0,y); sc.lineTo(W,y); sc.stroke();
+    sc.fillStyle='rgba(129,140,248,.5)'; sc.font='9px monospace';
+    sc.fillText('C'+(m/12-1|0), 3, y-2);
+  });
+  // Time labels
+  sc.fillStyle='rgba(107,114,128,.65)'; sc.font='9px monospace';
+  for(let s=0; s<=WIN; s++) sc.fillText(s+'s', W*s/WIN+2, H-3);
+
+  // ── Helper: compute recording-relative time from ctx timestamp ──
+  // Used only when hasRec is false (live mode) — maps ctx time to relative
+  function recTimeOf(ctx_t){
+    // Approximate: if recording started at recStartCtx (latest segment start)
+    // recElapsed already accounts for paused time
+    // During playback we just use pbCursor
+    if(pbActive){
+      const cursor = pbOffset + (pbPaused ? 0 : audioCtx.currentTime - pbStartCtx);
+      return cursor + (ctx_t - now); // relative to current playback position
+    }
+    // During or after recording: segments stored by audioCtx time, map to rec time
+    // recStartCtx is the ctx time when current recording segment started
+    // rec_t = recElapsed + (ctx_t - recStartCtx)   [only valid if recording]
+    if(recState === 'recording'){
+      return recElapsed + (ctx_t - recStartCtx);
+    }
+    // Frozen: map ctx time relative to when rec ended
+    // recEndCtx = recStartCtx + (recElapsed_at_last_segment - recElapsed_before_last_segment)
+    // Simpler: store offset when recording stops
+    return recElapsed + (ctx_t - _recEndCtx);
+  }
+
+  // ── Draw pitch timeline (mic, orange) ──────────────────
+  // Break line on: silence, OR jump > 4 semitones between adjacent frames
+  const MAX_JUMP_SEMITONES = 4;
+  if(pitchTimeline.length > 1){
+    sc.lineWidth=2.5; sc.lineCap='round'; sc.lineJoin='round';
+    sc.strokeStyle = MIC_COLOR;
+    sc.shadowBlur=4; sc.shadowColor=MIC_COLOR;
+    let inLine = false, prevFreq = null;
+    sc.beginPath();
+    for(let i=0; i<pitchTimeline.length; i++){
+      const pt = pitchTimeline[i];
+      if(pt.freq === null){ inLine=false; prevFreq=null; continue; }
+      // Break if pitch jumps too far (spike / detection error)
+      if(prevFreq !== null){
+        const semitones = Math.abs(12*Math.log2(pt.freq/prevFreq));
+        if(semitones > MAX_JUMP_SEMITONES){ inLine=false; }
+      }
+      const x = tRecToX(pt.t);
+      const y = freqToY(pt.freq, H);
+      if(!inLine){ sc.moveTo(x,y); inLine=true; }
+      else        { sc.lineTo(x,y); }
+      prevFreq = pt.freq;
+    }
+    sc.stroke(); sc.shadowBlur=0;
+    // Live freq display while recording
+    const last = [...pitchTimeline].reverse().find(p=>p.freq!==null);
+    if(last && recState==='recording'){
+      document.getElementById('micFreqDisplay').textContent = last.freq.toFixed(1)+' Hz 🎤';
+    }
+  }
+
+  // ── Note name labels above pitch line ────────────────────
+  // Shown whenever noteLabels is populated (right after stopRecording)
+  if(noteLabels.length > 0){
+    const LABEL_H = 14;  // pill height px
+    const PAD     = 3;
+    sc.font = 'bold 10px monospace';
+    sc.textBaseline = 'alphabetic';
+
+    noteLabels.forEach(nl=>{
+      const x1 = tRecToX(nl.tStart);
+      const x2 = tRecToX(nl.tEnd);
+      if(x2 < 0 || x1 > W) return;
+      const segW = x2 - x1;
+      if(segW < 6) return;
+
+      const metrics = sc.measureText(nl.label);
+      const tw = metrics.width;
+      if(segW < tw + PAD*2) return; // too narrow
+
+      // Y: pitch line position, clamped so label stays inside canvas
+      const yLine = freqToY(nl.freq, H);
+      const pillTop = Math.max(1, yLine - LABEL_H - 3); // clamp top edge
+
+      const cx = Math.min(W - tw/2 - PAD - 1,
+                  Math.max(tw/2 + PAD + 1,
+                  (x1 + x2) / 2));
+
+      // Background pill
+      sc.fillStyle = 'rgba(15,23,42,0.85)';
+      sc.beginPath();
+      if(sc.roundRect) sc.roundRect(cx - tw/2 - PAD, pillTop, tw + PAD*2, LABEL_H, 3);
+      else sc.rect(cx - tw/2 - PAD, pillTop, tw + PAD*2, LABEL_H);
+      sc.fill();
+
+      // Text — baseline at pill bottom minus 2px padding
+      const isSharp = nl.label.includes('#');
+      sc.fillStyle = isSharp ? '#f9a8d4' : '#e0e7ff';
+      sc.fillText(nl.label, cx - tw/2, pillTop + LABEL_H - 3);
+    });
+  }
+
+  // ── Draw key segments ──────────────────────────────────
+  noteSegments.forEach(seg=>{
+    const x1 = tToX(seg.startTime);
+    const x2 = tToX(seg.endTime !== null ? seg.endTime : now);
+    if(x2 < 0 || x1 > W) return;
+    const y  = freqToY(seg.freq, H);
+    sc.strokeStyle=seg.color; sc.lineWidth=5; sc.lineCap='round';
+    sc.shadowBlur=6; sc.shadowColor=seg.color;
+    sc.beginPath(); sc.moveTo(Math.max(0,x1),y); sc.lineTo(Math.min(W,Math.max(x1+1,x2)),y); sc.stroke();
+    sc.shadowBlur=0;
+  });
+
+  // ── Playhead line ──────────────────────────────────────
+  if(hasRec && (pbActive || pbPaused)){
+    const cursor = pbOffset + (pbPaused ? 0 : audioCtx.currentTime - pbStartCtx);
+    const px = tRecToX(cursor);
+    if(px >= 0 && px <= W){
+      sc.strokeStyle='rgba(255,255,255,.7)'; sc.lineWidth=1.5;
+      sc.setLineDash([4,3]);
+      sc.beginPath(); sc.moveTo(px,0); sc.lineTo(px,H); sc.stroke();
+      sc.setLineDash([]);
+      // cursor time label
+      sc.fillStyle='rgba(255,255,255,.6)'; sc.font='9px monospace';
+      sc.fillText(cursor.toFixed(1)+'s', px+3, 12);
+    }
+  }
+
+  // ── Freq display (keyboard) ────────────────────────────
+  if(pressedKeys.size>0){
+    const top = Math.max(...[...pressedKeys.values()].map(v=>v.freq));
+    document.getElementById('curFreqDisplay').textContent = top.toFixed(1)+' Hz';
+  } else {
+    document.getElementById('curFreqDisplay').textContent = '— Hz';
+  }
+  if(recState !== 'recording' && !pbActive){
+    document.getElementById('micFreqDisplay').textContent = '— Hz';
+  }
+}
+drawSpec();
+
+
+// ═══════════════════════════════════════════════════════════
+//  Ear Training Game
+// ═══════════════════════════════════════════════════════════
+
+// ── Difficulty levels ──────────────────────────────────────
+// noteCount: how many notes in a chord question
+// streakToNext: consecutive correct answers to advance
+const LEVELS = [
+  { label:'Lv.1 单音',   noteCount:1, streakToNext:5  },
+  { label:'Lv.2 双音',   noteCount:2, streakToNext:5  },
+  { label:'Lv.3 三音和弦', noteCount:3, streakToNext:999 },
+];
+
+let gameActive  = false;
+let targetMidis = [];   // array, length = current level noteCount (sorted low→high for answer checking)
+let lastTargetKey = ''; // stringified last question, used to prevent consecutive repeats
+let playOrder   = [];   // actual playback order (may be reversed for descending)
+let score=0, total=0;
+let gameVoiceEnvs = []; // array of active game voice envelopes
+let currentLevel  = 0;  // index into LEVELS
+let streak        = 0;  // consecutive correct answers at current level
+let waitingForAnswer = false; // block new presses while playing sound / feedback
+
+// ── Settings: localStorage persistence ────────────────────
+const LS_NOTES = 'piano_game_notes';
+const LS_OCTS  = 'piano_game_octs';
+
+function loadSettings(){
+  // Default: all notes, octave 4
+  let notes = [0,1,2,3,4,5,6,7,8,9,10,11];
+  let octs  = [4];
+  try {
+    const sn = localStorage.getItem(LS_NOTES);
+    const so = localStorage.getItem(LS_OCTS);
+    if(sn) notes = JSON.parse(sn);
+    if(so) octs  = JSON.parse(so);
+  } catch(e){}
+  return { notes, octs };
+}
+
+function saveSettings(){
+  try {
+    localStorage.setItem(LS_NOTES, JSON.stringify([...selectedNotes]));
+    localStorage.setItem(LS_OCTS,  JSON.stringify([...selectedOcts]));
+  } catch(e){}
+}
+
+// ── Settings checkboxes ────────────────────────────────────
+const saved = loadSettings();
+const selectedNotes = new Set(saved.notes);
+const selectedOcts  = new Set(saved.octs);
+
+function buildSettingsUI(){
+  // Note checkboxes
+  const noteBox = document.getElementById('noteCheckboxes');
+  NOTE_NAMES.forEach((name,ni)=>{
+    const item = document.createElement('label');
+    item.className = 'note-cb-item';
+    const cb = document.createElement('input');
+    cb.type='checkbox'; cb.checked=selectedNotes.has(ni); cb.dataset.ni=ni;
+    cb.addEventListener('change',()=>{
+      if(cb.checked) selectedNotes.add(ni); else selectedNotes.delete(ni);
+      if(selectedNotes.size===0){ cb.checked=true; selectedNotes.add(ni); }
+      saveSettings();
+    });
+    const lbl = document.createElement('span');
+    lbl.textContent = name;
+    if(SHARP_IDX.has(ni)) lbl.className='sharp-label';
+    item.appendChild(cb); item.appendChild(lbl);
+    noteBox.appendChild(item);
+  });
+
+  // Octave checkboxes (2-6)
+  const octBox = document.getElementById('octCheckboxes');
+  for(let oct=2;oct<=6;oct++){
+    const item = document.createElement('label');
+    item.className = 'note-cb-item';
+    const cb = document.createElement('input');
+    cb.type='checkbox'; cb.checked=selectedOcts.has(oct); cb.dataset.oct=oct;
+    cb.addEventListener('change',()=>{
+      if(cb.checked) selectedOcts.add(oct); else selectedOcts.delete(oct);
+      if(selectedOcts.size===0){ cb.checked=true; selectedOcts.add(oct); }
+      saveSettings();
+    });
+    const lbl = document.createElement('span');
+    lbl.textContent = `Oct ${oct}`;
+    item.appendChild(cb); item.appendChild(lbl);
+    octBox.appendChild(item);
+  }
+}
+buildSettingsUI();
+
+function getGamePool(){
+  const pool=[];
+  selectedOcts.forEach(oct=>{
+    selectedNotes.forEach(ni=>{ pool.push(midiNote(oct,ni)); });
+  });
+  return pool;
+}
+
+// ── UI refs ────────────────────────────────────────────────
+const startBtn    = document.getElementById('startGameBtn');
+const hintBtn     = document.getElementById('hintBtn');
+const nextBtn     = document.getElementById('nextBtn');
+const quitBtn     = document.getElementById('quitBtn');
+const levelBadge  = document.getElementById('gameLevelBadge');
+const gameSettings= document.getElementById('gameSettings');
+
+startBtn.addEventListener('click', startGame);
+hintBtn.addEventListener('click',  ()=>{ if(!hintBtn.disabled) replayTarget(); });
+nextBtn.addEventListener('click',  ()=>{ if(!nextBtn.disabled){ total++; updateScore(); stopGameVoices(); clearTargetHighlight(); setStatus('跳过，下一题…','idle'); waitingForAnswer=false; setTimeout(nextRound,300); } });
+quitBtn.addEventListener('click',  quitGame);
+
+function setGameUI(inGame){
+  startBtn.style.display   = inGame ? 'none' : '';
+  hintBtn.style.display    = inGame ? '' : 'none';
+  nextBtn.style.display    = inGame ? '' : 'none';
+  quitBtn.style.display    = inGame ? '' : 'none';
+  levelBadge.style.display = inGame ? '' : 'none';
+  gameSettings.style.display = inGame ? 'none' : '';
+}
+
+function startGame(){
+  const pool = getGamePool();
+  if(pool.length===0){ setStatus('请至少选择一个音名和一个八度','wrong'); return; }
+  gameActive=true; score=0; total=0; streak=0; currentLevel=0; lastTargetKey='';
+  updateScore(); updateLevelBadge();
+  setGameUI(true);
+  hintBtn.disabled=false; nextBtn.disabled=false;
+  waitingForAnswer=false;
+  nextRound();
+}
+function quitGame(){
+  stopGameVoices(); clearTargetHighlight();
+  gameActive=false; targetMidis=[];
+  waitingForAnswer=false; pendingCorrect.clear();
+  setStatus('已退出，自由演奏模式','idle');
+  setGameUI(false);
+}
+function updateLevelBadge(){
+  levelBadge.textContent = LEVELS[currentLevel].label;
+}
+
+// ── Round logic ────────────────────────────────────────────
+// pressedSequence: ordered list of correct presses so far (for ordered matching)
+let pressedSequence = [];
+
+function makePlayOrder(noteCount, sortedNotes){
+  if(noteCount === 1) return [...sortedNotes];
+
+  if(noteCount === 2){
+    // 50/50 ascending or descending
+    return Math.random() < 0.5 ? [...sortedNotes] : [...sortedNotes].reverse();
+  }
+
+  // noteCount === 3: generate a non-monotone random permutation
+  // Keep trying until neither fully ascending nor fully descending
+  const arr = [...sortedNotes];
+  let perm;
+  let attempts = 0;
+  do {
+    perm = [...arr].sort(()=>Math.random()-.5);
+    attempts++;
+    const asc  = perm[0]<perm[1] && perm[1]<perm[2];
+    const desc = perm[0]>perm[1] && perm[1]>perm[2];
+    if(!asc && !desc) break; // got a non-monotone permutation
+  } while(attempts < 20);
+  return perm;
+}
+
+function nextRound(){
+  clearTargetHighlight();
+  const pool = getGamePool();
+  const lvl  = LEVELS[currentLevel];
+
+  // Pick noteCount distinct notes, avoid repeating last question
+  let candidate, candidateKey, attempts = 0;
+  do {
+    const shuffled = [...pool].sort(()=>Math.random()-.5);
+    candidate = shuffled.slice(0, Math.min(lvl.noteCount, shuffled.length));
+    candidate.sort((a,b)=>a-b); // canonical key for dedup
+    candidateKey = candidate.join(',');
+    attempts++;
+  } while(candidateKey === lastTargetKey && attempts < 10 && pool.length > 1);
+
+  targetMidis  = candidate;               // sorted, used only as answer set for Lv1
+  lastTargetKey = candidateKey;
+  playOrder    = makePlayOrder(lvl.noteCount, candidate); // actual playback + answer order for Lv2/3
+  pressedSequence = [];
+
+  // Direction hint for 2-note
+  let dirLabel = '';
+  if(lvl.noteCount === 2)
+    dirLabel = playOrder[0] < playOrder[1] ? ' ↑上行' : ' ↓下行';
+
+  const countHint = lvl.noteCount > 1 ? `（${lvl.noteCount}个音，按播放顺序）` : '';
+  setStatus(`🔊 播放中${dirLabel}，按下对应的琴键${countHint}…`, 'playing');
+  hintBtn.disabled = false;
+  waitingForAnswer = false;
+  replayTarget();
+}
+
+function replayTarget(){
+  stopGameVoices();
+  if(!targetMidis.length) return;
+  resumeCtx();
+  pressedSequence = []; // reset on replay
+
+  const lvl = LEVELS[currentLevel];
+  if(lvl.noteCount === 1){
+    playGameNote(playOrder[0], 0, 2000);
+    setTimeout(stopGameVoices, 2100);
+  } else {
+    // Play notes in playOrder sequentially
+    playOrder.forEach((midi,i)=>{
+      setTimeout(()=> playGameNote(midi, 0, 650), i * 680);
+    });
+    // Then all together as chord
+    const chordDelay = playOrder.length * 680 + 150;
+    setTimeout(()=>{
+      stopGameVoices();
+      playOrder.forEach(midi=> playGameNote(midi, 0, 2000));
+    }, chordDelay);
+    setTimeout(stopGameVoices, chordDelay + 2100);
+  }
+  setTimeout(()=>{ waitingForAnswer=true; }, 200);
+}
+
+async function playGameNote(midi, delayMs, durationMs){
+  const freq = midiToFreq(midi);
+  if(currentTimbre==='sine'){
+    const gn=audioCtx.createGain(), now=audioCtx.currentTime + delayMs/1000;
+    gn.gain.setValueAtTime(0,now); gn.gain.linearRampToValueAtTime(0.5,now+.01); gn.connect(masterGain);
+    const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.value=freq; o.connect(gn); o.start(now);
+    const env={ stop(){ const t=audioCtx.currentTime; gn.gain.exponentialRampToValueAtTime(.0001,t+.3); o.stop(t+.35); } };
+    gameVoiceEnvs.push(env);
+  } else {
+    const preset = await loadPreset(currentTimbre);
+    if(preset){
+      const env=wafPlayer.queueWaveTable(audioCtx,masterGain,preset,audioCtx.currentTime+delayMs/1000,midi,durationMs/1000,.8);
+      gameVoiceEnvs.push({ stop(){ try{ env.cancel(); }catch(e){} } });
+    } else {
+      const gn=audioCtx.createGain(), now=audioCtx.currentTime;
+      gn.gain.setValueAtTime(0,now); gn.gain.linearRampToValueAtTime(.5,now+.01); gn.connect(masterGain);
+      const o=audioCtx.createOscillator(); o.frequency.value=freq; o.connect(gn); o.start();
+      gameVoiceEnvs.push({ stop(){ const t=audioCtx.currentTime; gn.gain.exponentialRampToValueAtTime(.0001,t+.3); o.stop(t+.35); } });
+    }
+  }
+}
+
+function stopGameVoices(){
+  gameVoiceEnvs.forEach(e=>{ try{ e.stop(); }catch(_){} });
+  gameVoiceEnvs=[];
+}
+
+// ── Answer checking ────────────────────────────────────────
+// Called on key-press: evaluates correctness but defers sfx+advance to release
+function checkGame(pressedMidi){
+  if(!gameActive || !targetMidis.length) return;
+  const lvl = LEVELS[currentLevel];
+
+  if(lvl.noteCount === 1){
+    // ── 单音 ──────────────────────────────────────────
+    if(pressedMidi === targetMidis[0]){
+      // Correct — defer sfx and round-advance until key is released
+      setStatus(`🎵 松开确认…`, 'playing');
+      pendingCorrect.add(pressedMidi);
+    } else {
+      streak=0; total++; updateScore();
+      playSfx(false);
+      const diff = pressedMidi - targetMidis[0];
+      setStatus(`❌ ${diff>0?'📈 偏高了':'📉 偏低了'}，再听听…`, 'wrong');
+      setTimeout(replayTarget, 800);
+    }
+
+  } else {
+    // ── 多音：按 playOrder 顺序逐个匹配 ────────────────
+    // Ignore re-pressing the last pressed note (key-repeat guard)
+    if(pressedSequence.length > 0 &&
+       pressedMidi === pressedSequence[pressedSequence.length-1]) return;
+
+    const expected = playOrder[pressedSequence.length];
+
+    if(pressedMidi === expected){
+      pressedSequence.push(pressedMidi);
+
+      if(pressedSequence.length === playOrder.length){
+        // All notes hit in correct order — defer sfx until this last key is released
+        setStatus(`🎵 松开确认…`, 'playing');
+        pendingCorrect.add(pressedMidi);
+      } else {
+        const remain = playOrder.length - pressedSequence.length;
+        setStatus(`👆 对！还差 ${remain} 个音…`, 'playing');
+      }
+    } else {
+      // Wrong note or wrong order
+      streak=0; total++; updateScore();
+      playSfx(false);
+      pressedSequence = [];
+      setStatus(`❌ 顺序或音符有误，应按 ${midiLabel(expected)}，重新听…`, 'wrong');
+      setTimeout(replayTarget, 900);
+    }
+  }
+}
+
+// Called on key-release when that key was marked pendingCorrect
+function firePendingCorrect(midi){
+  if(!gameActive) return;
+  const lvl = LEVELS[currentLevel];
+  total++; score++; streak++; updateScore();
+  playSfx(true);
+  if(lvl.noteCount === 1){
+    setStatus(`✅ 正确！${midiLabel(targetMidis[0])}`, 'correct');
+  } else {
+    const names = playOrder.map(midiLabel).join(' → ');
+    setStatus(`✅ 正确！${names}`, 'correct');
+  }
+  checkLevelUp();
+  setTimeout(nextRound, 1400);
+}
+
+function checkLevelUp(){
+  const lvl = LEVELS[currentLevel];
+  if(streak >= lvl.streakToNext && currentLevel < LEVELS.length-1){
+    currentLevel++;
+    streak=0;
+    updateLevelBadge();
+    setStatus(`🎉 进入 ${LEVELS[currentLevel].label}！`, 'correct');
+  }
+}
+
+// ── Sound effects (pure oscillator, no preset needed) ──────
+function playSfx(correct){
+  resumeCtx();
+  const now = audioCtx.currentTime;
+  const gn = audioCtx.createGain();
+  gn.connect(masterGain);
+
+  if(correct){
+    // Rising two-tone chime: C5 → E5
+    [[72,0],[76,0.15]].forEach(([note, delay])=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='sine'; o.frequency.value=midiToFreq(note);
+      g.gain.setValueAtTime(0,now+delay);
+      g.gain.linearRampToValueAtTime(0.35,now+delay+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,now+delay+0.45);
+      o.connect(g); g.connect(masterGain);
+      o.start(now+delay); o.stop(now+delay+0.5);
+    });
+  } else {
+    // Low dull thud: descending minor 2nd
+    [[55,0],[54,0.1]].forEach(([note,delay])=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='triangle'; o.frequency.value=midiToFreq(note);
+      g.gain.setValueAtTime(0,now+delay);
+      g.gain.linearRampToValueAtTime(0.3,now+delay+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,now+delay+0.35);
+      o.connect(g); g.connect(masterGain);
+      o.start(now+delay); o.stop(now+delay+0.4);
+    });
+  }
+}
+
+function clearTargetHighlight(){
+  document.querySelectorAll('.target-key').forEach(b=>b.classList.remove('target-key'));
+}
+function updateScore(){ document.getElementById('gameScore').textContent=`得分 ${score} / ${total}　连对 ${streak}`; }
+function setStatus(msg,cls){
+  const el=document.getElementById('gameStatus'); el.textContent=msg; el.className='game-status '+cls;
+}
+function midiLabel(midi){ return NOTE_NAMES[midi%12]+(Math.floor(midi/12)-1); }
+
+// ═══════════════════════════════════════════════════════════
+//  Keyboard shortcuts
+//  White keys: a s d f g h j k  → C4 D4 E4 F4 G4 A4 B4 C5
+//  Black keys: w e   t y u      → C#4 D#4 F#4 G#4 A#4
+// ═══════════════════════════════════════════════════════════
+const KEY_MAP = {
+  // white keys (octave 4, except last C which is oct 5)
+  'a': {oct:4, ni:0 },   // C4
+  'w': {oct:4, ni:1 },   // C#4
+  's': {oct:4, ni:2 },   // D4
+  'e': {oct:4, ni:3 },   // D#4
+  'd': {oct:4, ni:4 },   // E4
+  'f': {oct:4, ni:5 },   // F4
+  't': {oct:4, ni:6 },   // F#4
+  'g': {oct:4, ni:7 },   // G4
+  'y': {oct:4, ni:8 },   // G#4
+  'h': {oct:4, ni:9 },   // A4
+  'u': {oct:4, ni:10},   // A#4
+  'j': {oct:4, ni:11},   // B4
+  'k': {oct:5, ni:0 },   // C5
+};
+
+// Map key string → DOM button (built after keyboard DOM is ready)
+const shortcutBtnMap = {};
+
+Object.entries(KEY_MAP).forEach(([key, {oct, ni}]) => {
+  const id = noteId(oct, ni);
+  const btn = kbSection.querySelector(`[data-note-id="${id}"]`);
+  if(!btn) return;
+  shortcutBtnMap[key] = btn;
+
+  // Add visible shortcut label + marker class
+  btn.classList.add('has-shortcut');
+  const sc2 = document.createElement('span');
+  sc2.className = 'key-shortcut';
+  sc2.textContent = key.toUpperCase();
+  btn.appendChild(sc2);
+});
+
+// Track which keys are currently held (prevent key-repeat firing)
+const heldKeys = new Set();
+
+document.addEventListener('keydown', e => {
+  // Ignore if focus is on an input / button (game buttons etc.)
+  if(e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+  if(e.repeat) return;
+
+  const key = e.key.toLowerCase();
+  if(!KEY_MAP[key]) return;
+  e.preventDefault();
+
+  if(heldKeys.has(key)) return;
+  heldKeys.add(key);
+
+  const btn = shortcutBtnMap[key];
+  if(!btn) return;
+  const id   = btn.dataset.noteId;
+  const midi = parseInt(btn.dataset.midi);
+  const freq = parseFloat(btn.dataset.freq);
+  const label = btn.dataset.label;
+  pressKey(btn, id, midi, freq, label);
+});
+
+document.addEventListener('keyup', e => {
+  const key = e.key.toLowerCase();
+  if(!KEY_MAP[key]) return;
+  heldKeys.delete(key);
+  const btn = shortcutBtnMap[key];
+  if(!btn) return;
+  releaseKey(btn, btn.dataset.noteId, parseInt(btn.dataset.midi));
+});
+</script>
+</body>
+</html>
