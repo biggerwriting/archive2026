@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keyboard Sound</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 标题 + 主开关 -->
+    <div class="header">
+      <span class="title">🎹 Keyboard Sound</span>
+      <label class="toggle">
+        <input type="checkbox" id="enabledToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- 控制区（主开关关闭时置灰） -->
+    <div class="controls" id="controls">
+
+      <!-- 音色选择 -->
+      <div class="section">
+        <div class="section-label">音色</div>
+        <div class="btn-group">
+          <button class="mode-btn active" data-sound="piano">🎹 钢琴</button>
+          <button class="mode-btn" data-sound="typewriter">⌨️ 打字机</button>
+        </div>
+      </div>
+
+      <!-- 音符模式（仅钢琴模式显示） -->
+      <div class="section" id="noteModeSection">
+        <div class="section-label">音符模式</div>
+        <div class="btn-group">
+          <button class="note-btn active" data-note="fixed">固定映射</button>
+          <button class="note-btn" data-note="sequential">顺序循环</button>
+          <button class="note-btn" data-note="random">随机</button>
+        </div>
+      </div>
+
+      <!-- 音量 -->
+      <div class="section">
+        <div class="section-label">音量</div>
+        <div class="volume-row">
+          <span>🔈</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="75">
+          <span>🔊</span>
+          <span class="volume-val" id="volumeVal">75%</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
