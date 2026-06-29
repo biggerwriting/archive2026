@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>文章卡片生成器</title>
+  <style>
+    /* ===================================================
+       RESET & BASE
+    =================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; font-size: 14px; }
+    body {
+      font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+      background: #EBEBEB;
+      color: #1a1a1a;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===================================================
+       APP SHELL
+    =================================================== */
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      background: #fff;
+      border-bottom: 1px solid #E8E8E8;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.3px;
+    }
+    .logo-icon { font-size: 20px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-primary { background: #1a1a1a; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #333; }
+    .btn-secondary { background: #fff; color: #1a1a1a; border: 1.5px solid #E0E0E0; }
+    .btn-secondary:hover:not(:disabled) { border-color: #999; background: #FAFAFA; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ===================================================
+       SIDEBAR
+    =================================================== */
+    .sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-right: 1px solid #E8E8E8;
+      overflow-y: auto;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #DDD; border-radius: 2px; }
+
+    .sb-section { padding: 14px 16px; border-bottom: 1px solid #F0F0F0; }
+    .sb-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #AAA;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+
+    /* Editor */
+    #editor {
+      width: 100%;
+      height: 240px;
+      resize: none;
+      border: 1.5px solid #E8E8E8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: 'SF Mono', 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #222;
+      background: #FAFAFA;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #editor:focus { border-color: #1a1a1a; background: #fff; }
+    #editor::placeholder { color: #BEB; }
+
+    /* Theme grid */
+    .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .theme-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 6px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background: #F5F5F5;
+      transition: all 0.15s;
+    }
+    .theme-btn:hover { background: #EBEBEB; }
+    .theme-btn.active { border-color: #1a1a1a; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .theme-thumb {
+      width: 56px;
+      height: 74px;
+      border-radius: 5px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.14);
+      flex-shrink: 0;
+    }
+    .theme-name { font-size: 11.5px; font-weight: 500; color: #555; }
+
+    /* Theme thumbnail inner layouts */
+    .tp { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+    /* minimal */
+    .tp-minimal { background: #fff; align-items: center; justify-content: center; gap: 4px; padding: 8px 6px; }
+    .tp-minimal .ln { height: 1px; width: 80%; background: #ccc; }
+    .tp-minimal .tx { height: 3px; border-radius: 2px; }
+
+    /* morandi */
+    .tp-morandi { background: #EDE8E1; }
+    .tp-morandi .blk { height: 28px; background: #C8BAB0; flex-shrink: 0; }
+    .tp-morandi .body { flex: 1; padding: 5px 7px; display: flex; flex-direction: column; gap: 3px; }
+    .tp-morandi .tx { height: 3px; border-radius: 2px; background: #4A3F35; }
+
+    /* dark */
+    .tp-dark { background: #0F0F0F; padding: 8px 7px; gap: 4px; }
+    .tp-dark .bar { height: 2px; width: 24px; background: #7C6AF7; border-radius: 1px; }
+    .tp-dark .tx { height: 3px; border-radius: 2px; background: #E8E8E8; }
+    .tp-dark .tx-sm { height: 2px; border-radius: 2px; background: #444; }
+
+    /* magazine */
+    .tp-magazine { background: #F5F3EE; }
+    .tp-magazine .red { height: 4px; background: #C8102E; flex-shrink: 0; }
+    .tp-magazine .body { flex: 1; padding: 5px 7px; display: flex; flex-direction: column; gap: 3px; }
+    .tp-magazine .tx-lg { height: 5px; border-radius: 1px; background: #1A1A1A; }
+    .tp-magazine .tx { height: 3px; border-radius: 1px; background: #555; }
+    .tp-magazine .tx-sm { height: 2px; border-radius: 1px; background: #CCC; }
+
+    /* Tweaks */
+    .tweak-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 11px;
+    }
+    .tweak-row:last-child { margin-bottom: 0; }
+    .tweak-label { font-size: 12.5px; color: #555; min-width: 64px; }
+    .tweak-control { display: flex; align-items: center; gap: 8px; }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 108px;
+      height: 3px;
+      border-radius: 2px;
+      background: #E0E0E0;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      cursor: pointer;
+    }
+    input[type="color"] {
+      width: 32px; height: 32px;
+      border: 1.5px solid #E0E0E0;
+      border-radius: 6px;
+      padding: 2px;
+      cursor: pointer;
+      background: none;
+    }
+    .tweak-value { font-size: 11px; color: #999; min-width: 36px; text-align: right; }
+
+    /* Sidebar hint */
+    .sb-hint {
+      padding: 12px 16px;
+      font-size: 11.5px;
+      color: #AAA;
+      line-height: 1.6;
+    }
+    .sb-hint code {
+      background: #F0F0F0;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #666;
+    }
+
+    /* ===================================================
+       PREVIEW PANEL
+    =================================================== */
+    .preview-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #EBEBEB;
+    }
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 20px;
+      background: #F5F5F5;
+      border-bottom: 1px solid #E0E0E0;
+      flex-shrink: 0;
+    }
+    .preview-bar-left { display: flex; align-items: center; gap: 12px; }
+    #card-info { font-size: 12.5px; color: #666; }
+    .preview-hint { font-size: 11.5px; color: #AAA; }
+
+    .cards-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-content: flex-start;
+    }
+    .cards-grid::-webkit-scrollbar { width: 6px; }
+    .cards-grid::-webkit-scrollbar-thumb { background: #CCC; border-radius: 3px; }
+
+    /* Empty state */
+    .empty-state {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      text-align: center;
+      color: #BBB;
+      gap: 10px;
+    }
+    .empty-icon { font-size: 44px; }
+    .empty-title { font-size: 16px; font-weight: 500; color: #888; }
+    .empty-desc { font-size: 13px; color: #BBB; line-height: 1.7; }
+
+    /* Card preview wrapper */
+    .card-wrap {
+      position: relative;
+      cursor: pointer;
+      border-radius: 6px;
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+    }
+    .card-wrap:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+    .card-wrap.selected { box-shadow: 0 0 0 3px #1a1a1a, 0 8px 24px rgba(0,0,0,0.2); }
+    .card-wrap.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 22px; height: 22px;
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .card-badge {
+      position: absolute;
+      bottom: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 9.5px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    /* Scale container: 1080*0.28 ≈ 302, 1440*0.28 ≈ 403 */
+    .card-scale-box {
+      width: 302px;
+      height: 403px;
+      overflow: hidden;
+    }
+
+    /* ===================================================
+       LOADING OVERLAY
+    =================================================== */
+    #loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+    }
+    #loading-overlay.show { display: flex; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-text { color: #fff; font-size: 14px; font-weight: 500; }
+
+    /* ===================================================
+       CARD STYLES — 1080 × 1440 px
+       These are the actual exported cards.
+    =================================================== */
+    .article-card {
+      width: 1080px;
+      height: 1440px;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+      /* font-family stacks for Chinese */
+      --ff-sans: -apple-system, 'PingFang SC', 'Helvetica Neue', 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
+      --ff-serif: 'Georgia', 'Songti SC', 'STSong', 'SimSun', '宋体', serif;
+    }
+
+    /* ─── THEME: 极简 ─────────────────────────────────── */
+    .theme-minimal {
+      --c-bg:      #FFFFFF;
+      --c-text:    #1A1A1A;
+      --c-accent:  #1A1A1A;
+      --c-muted:   #888888;
+      --c-border:  #E2E2E2;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--ff-sans);
+    }
+
+    /* minimal cover */
+    .theme-minimal .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 100px 120px;
+      text-align: center;
+      gap: 0;
+    }
+    .theme-minimal .c-vline { width: 1px; height: 180px; background: var(--c-border); margin-bottom: 64px; }
+    .theme-minimal .c-tag { font-size: 13px; letter-spacing: 5px; text-transform: uppercase; color: var(--c-muted); margin-bottom: 44px; }
+    .theme-minimal .c-title { font-size: 62px; font-weight: 700; line-height: 1.25; letter-spacing: -1.5px; color: var(--c-text); margin-bottom: 36px; }
+    .theme-minimal .c-sub { font-size: 32px; color: var(--c-muted); line-height: 1.8; margin-bottom: 64px; max-width: 800px; }
+    .theme-minimal .c-dash { width: 48px; height: 2px; background: var(--c-accent); }
+    .theme-minimal .c-pagenum { position: absolute; top: 64px; right: 72px; font-size: 14px; color: var(--c-muted); letter-spacing: 1px; }
+
+    /* minimal content */
+    .theme-minimal .content { display: flex; flex-direction: column; height: 100%; }
+    .theme-minimal .ct-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 52px 80px 30px;
+      border-bottom: 1px solid var(--c-border);
+      flex-shrink: 0;
+    }
+    .theme-minimal .ct-head-title { font-size: 16px; color: var(--c-muted); max-width: 640px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .theme-minimal .ct-head-page { font-size: 16px; color: var(--c-muted); flex-shrink: 0; }
+    .theme-minimal .ct-body { flex: 1; padding: 60px 80px; overflow: hidden; }
+    .theme-minimal .ct-foot { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 36px; flex-shrink: 0; }
+    .theme-minimal .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-border); }
+    .theme-minimal .dot.on { background: var(--c-accent); }
+
+    /* ─── THEME: 莫兰迪 ────────────────────────────────── */
+    .theme-morandi {
+      --c-bg:     #EDE8E1;
+      --c-text:   #4A3F35;
+      --c-accent: #8B7B6B;
+      --c-muted:  #9E9189;
+      --c-border: #C8BAB0;
+      --c-warm:   #D4C8BC;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--ff-serif);
+    }
+
+    /* morandi cover */
+    .theme-morandi .cover { display: flex; flex-direction: column; height: 100%; }
+    .theme-morandi .c-top {
+      height: 460px;
+      background: var(--c-warm);
+      flex-shrink: 0;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 84px 52px;
+    }
+    .theme-morandi .c-circles {
+      position: absolute;
+      top: 64px; right: 84px;
+      display: flex; gap: 14px; align-items: flex-end;
+    }
+    .theme-morandi .c-circ {
+      border-radius: 50%;
+      background: var(--c-accent);
+    }
+    .theme-morandi .c-circ1 { width: 72px; height: 72px; opacity: 0.35; }
+    .theme-morandi .c-circ2 { width: 44px; height: 44px; opacity: 0.2; }
+    .theme-morandi .c-label { font-size: 13px; letter-spacing: 3px; color: var(--c-muted); font-family: var(--ff-sans); text-transform: uppercase; }
+    .theme-morandi .c-bottom { flex: 1; padding: 56px 84px; display: flex; flex-direction: column; justify-content: space-between; }
+    .theme-morandi .c-title { font-size: 54px; font-weight: 700; line-height: 1.35; letter-spacing: -0.5px; }
+    .theme-morandi .c-sub { font-size: 32px; color: var(--c-muted); line-height: 1.8; font-style: italic; margin-top: 28px; max-width: 800px; }
+    .theme-morandi .c-meta { display: flex; align-items: center; gap: 20px; }
+    .theme-morandi .c-meta-line { width: 40px; height: 1px; background: var(--c-border); }
+    .theme-morandi .c-meta-text { font-size: 15px; color: var(--c-muted); font-family: var(--ff-sans); }
+
+    /* morandi content */
+    .theme-morandi .content { display: flex; flex-direction: column; height: 100%; }
+    .theme-morandi .ct-head { display: flex; align-items: center; justify-content: space-between; padding: 52px 84px 28px; flex-shrink: 0; }
+    .theme-morandi .ct-head-title { font-size: 15px; color: var(--c-muted); font-family: var(--ff-sans); font-style: italic; }
+    .theme-morandi .ct-head-page { font-size: 15px; color: var(--c-border); font-family: var(--ff-sans); }
+    .theme-morandi .ct-divider { height: 1px; background: var(--c-border); margin: 0 84px; flex-shrink: 0; }
+    .theme-morandi .ct-body { flex: 1; padding: 52px 84px; overflow: hidden; }
+    .theme-morandi .ct-foot { padding: 32px 84px; flex-shrink: 0; }
+    .theme-morandi .ct-orn { color: var(--c-accent); font-size: 22px; letter-spacing: 10px; }
+
+    /* ─── THEME: 暗黑 ─────────────────────────────────── */
+    .theme-dark {
+      --c-bg:     #0F0F0F;
+      --c-text:   #E8E8E8;
+      --c-accent: #7C6AF7;
+      --c-accent2:#A89EF8;
+      --c-muted:  #777777;
+      --c-border: #282828;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--ff-sans);
+    }
+
+    /* dark cover */
+    .theme-dark .cover { display: flex; flex-direction: column; height: 100%; padding: 80px; }
+    .theme-dark .c-glow {
+      position: absolute;
+      top: -220px; right: -220px;
+      width: 640px; height: 640px;
+      border-radius: 50%;
+      background: var(--c-accent);
+      opacity: 0.08;
+      pointer-events: none;
+    }
+    .theme-dark .c-bar { height: 3px; width: 80px; background: linear-gradient(90deg, var(--c-accent), var(--c-accent2)); border-radius: 2px; margin-bottom: 48px; flex-shrink: 0; }
+    .theme-dark .c-label { font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--c-accent); margin-bottom: 28px; flex-shrink: 0; }
+    .theme-dark .c-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .theme-dark .c-title { font-size: 68px; font-weight: 700; line-height: 1.2; letter-spacing: -2px; color: var(--c-text); }
+    .theme-dark .c-sub { font-size: 32px; color: var(--c-muted); line-height: 1.8; margin-top: 40px; max-width: 800px; }
+    .theme-dark .c-meta { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--c-border); padding-top: 36px; flex-shrink: 0; }
+    .theme-dark .c-meta-text { font-size: 14px; color: var(--c-muted); }
+    .theme-dark .c-meta-tag { font-size: 12px; color: var(--c-accent); border: 1px solid var(--c-accent); padding: 5px 14px; border-radius: 20px; }
+
+    /* dark content */
+    .theme-dark .content { display: flex; flex-direction: column; height: 100%; position: relative; }
+    .theme-dark .ct-topbar { height: 3px; background: linear-gradient(90deg, var(--c-accent) 0%, transparent 100%); flex-shrink: 0; }
+    .theme-dark .ct-head { display: flex; align-items: center; justify-content: space-between; padding: 44px 80px 28px; flex-shrink: 0; }
+    .theme-dark .ct-head-title { font-size: 14px; color: var(--c-muted); letter-spacing: 0.3px; }
+    .theme-dark .ct-head-page { font-size: 14px; color: var(--c-accent); font-weight: 600; }
+    .theme-dark .ct-body { flex: 1; padding: 36px 80px; overflow: hidden; }
+    .theme-dark .ct-foot { border-top: 1px solid var(--c-border); padding: 30px 80px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .theme-dark .ct-foot-bar { height: 2px; width: 60px; background: linear-gradient(90deg, var(--c-accent), transparent); border-radius: 2px; }
+
+    /* ─── THEME: 杂志 ─────────────────────────────────── */
+    .theme-magazine {
+      --c-bg:     #F5F3EE;
+      --c-text:   #1A1A1A;
+      --c-accent: #C8102E;
+      --c-muted:  #666666;
+      --c-border: #DDDBD4;
+      background: var(--c-bg);
+      color: var(--c-text);
+      font-family: var(--ff-sans);
+    }
+
+    /* magazine cover */
+    .theme-magazine .cover { display: flex; flex-direction: column; height: 100%; }
+    .theme-magazine .c-topbar { height: 8px; background: var(--c-accent); flex-shrink: 0; }
+    .theme-magazine .c-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 80px;
+      border-bottom: 1px solid var(--c-border);
+      flex-shrink: 0;
+    }
+    .theme-magazine .c-brand { font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+    .theme-magazine .c-issue { font-size: 13px; color: var(--c-muted); letter-spacing: 1px; }
+    .theme-magazine .c-main { flex: 1; padding: 72px 80px 56px; display: flex; flex-direction: column; justify-content: space-between; }
+    .theme-magazine .c-cat { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+    .theme-magazine .c-catbar { width: 36px; height: 2px; background: var(--c-accent); }
+    .theme-magazine .c-cattext { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--c-accent); font-weight: 600; }
+    .theme-magazine .c-title { font-size: 80px; font-weight: 900; line-height: 1.08; letter-spacing: -3px; color: var(--c-text); font-family: var(--ff-serif); }
+    .theme-magazine .c-sub { font-size: 32px; color: var(--c-muted); line-height: 1.8; margin-top: 36px; border-left: 4px solid var(--c-accent); padding-left: 24px; max-width: 800px; }
+    .theme-magazine .c-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--c-border); padding-top: 28px; }
+    .theme-magazine .c-total { font-size: 13px; color: var(--c-muted); }
+    .theme-magazine .c-numghost { font-size: 60px; font-weight: 900; color: var(--c-accent); opacity: 0.12; line-height: 1; }
+
+    /* magazine content */
+    .theme-magazine .content { display: flex; flex-direction: column; height: 100%; }
+    .theme-magazine .ct-topbar { height: 5px; background: var(--c-accent); flex-shrink: 0; }
+    .theme-magazine .ct-head { display: flex; align-items: center; justify-content: space-between; padding: 30px 80px 22px; border-bottom: 1px solid var(--c-border); flex-shrink: 0; }
+    .theme-magazine .ct-head-title { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+    .theme-magazine .ct-head-page { font-size: 36px; font-weight: 900; color: var(--c-accent); line-height: 1; }
+    .theme-magazine .ct-body { flex: 1; padding: 50px 80px; overflow: hidden; }
+    .theme-magazine .ct-foot { display: flex; align-items: center; justify-content: space-between; padding: 22px 80px; border-top: 1px solid var(--c-border); flex-shrink: 0; }
+    .theme-magazine .ct-foot-txt { font-size: 11px; color: var(--c-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .theme-magazine .ct-foot-dot { width: 22px; height: 22px; background: var(--c-accent); border-radius: 50%; }
+
+    /* ===================================================
+       CARD BODY TYPOGRAPHY
+       Applied inside .ct-body
+    =================================================== */
+    .ct-body h1, .ct-body h2, .ct-body h3, .ct-body h4 {
+      line-height: 1.4;
+      margin-bottom: 0.55em;
+      margin-top: 1.1em;
+    }
+    .ct-body :is(h1, h2, h3, h4):first-child { margin-top: 0; }
+    .ct-body h1 { font-size: 1.65em; font-weight: 700; }
+    .ct-body h2 { font-size: 1.3em; font-weight: 650; }
+    .ct-body h3 { font-size: 1.1em; font-weight: 600; }
+    .ct-body h4 { font-size: 1em; font-weight: 600; }
+
+    .ct-body p { margin-bottom: 0.95em; line-height: 1.9; }
+    .ct-body p:last-child { margin-bottom: 0; }
+
+    .ct-body ul, .ct-body ol { margin-bottom: 0.95em; padding-left: 1.5em; }
+    .ct-body li { margin-bottom: 0.45em; line-height: 1.75; }
+    .ct-body li:last-child { margin-bottom: 0; }
+
+    .ct-body strong { font-weight: 700; }
+    .ct-body em { font-style: italic; }
+
+    .ct-body blockquote {
+      border-left: 4px solid var(--c-accent, #ccc);
+      padding: 4px 0 4px 22px;
+      color: var(--c-muted, #666);
+      font-style: italic;
+      margin: 1em 0;
+    }
+
+    .ct-body code {
+      background: rgba(0,0,0,0.06);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.82em;
+      font-family: 'SF Mono', 'JetBrains Mono', 'Courier New', monospace;
+    }
+    .theme-dark .ct-body code { background: rgba(255,255,255,0.1); }
+
+    .ct-body hr { border: none; border-top: 1px solid var(--c-border, #ddd); margin: 1.2em 0; }
+
+    /* ===================================================
+       OFF-SCREEN RENDER AREA
+    =================================================== */
+    #render-area {
+      position: fixed;
+      left: -99999px;
+      top: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🃏</span>
+      文章卡片生成器
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btn-png" disabled>
+        ↓ 导出 PNG
+      </button>
+      <button class="btn btn-primary" id="btn-zip" disabled>
+        ↓ 导出全部 ZIP
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Editor -->
+      <div class="sb-section">
+        <div class="sb-label">Markdown 内容</div>
+        <textarea id="editor" placeholder="# 文章标题
+
+第一段内容，支持 **加粗**、*斜体*、列表…
+
+---
+
+用 --- 手动切分到下一张卡片
+"></textarea>
+      </div>
+
+      <!-- Theme picker -->
+      <div class="sb-section">
+        <div class="sb-label">排版风格</div>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
+
+      <!-- Tweaks -->
+      <div class="sb-section">
+        <div class="sb-label">样式微调</div>
+        <div class="tweak-row">
+          <span class="tweak-label">正文字号</span>
+          <div class="tweak-control">
+            <input type="range" id="sl-font" min="20" max="42" value="28" step="1" />
+            <span class="tweak-value" id="val-font">28px</span>
+          </div>
+        </div>
+        <div class="tweak-row">
+          <span class="tweak-label">主色调</span>
+          <div class="tweak-control">
+            <input type="color" id="pk-accent" value="#1a1a1a" />
+            <span class="tweak-value" id="val-accent">#1a1a1a</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hint -->
+      <div class="sb-hint">
+        用 <code>---</code> 手动控制分页。<br>
+        H1 标题会自动识别为封面标题。<br>
+        点击预览卡片选中后可单张导出。
+      </div>
+    </aside>
+
+    <!-- Preview panel -->
+    <section class="preview-panel">
+      <div class="preview-bar">
+        <div class="preview-bar-left">
+          <span id="card-info">在左侧粘贴文章内容</span>
+        </div>
+        <span class="preview-hint">点击卡片选中，单张导出 PNG</span>
+      </div>
+      <div class="cards-grid" id="cards-grid">
+        <div class="empty-state">
+          <div class="empty-icon">✦</div>
+          <div class="empty-title">粘贴 Markdown，自动生成卡片</div>
+          <div class="empty-desc">
+            支持 # 标题、**加粗**、列表、引用等<br>
+            用 <code style="background:#EEE;padding:1px 5px;border-radius:3px;font-size:11px">---</code> 手动控制分页
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Off-screen render area -->
+<div id="render-area"></div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div id="loading-text">正在导出...</div>
+</div>
+
+<!-- CDN scripts -->
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<script>
+/* ==============================================================
+   CONSTANTS & THEMES
+============================================================== */
+const CARD_W = 1080;
+const CARD_H = 1440;
+const SCALE  = 302 / 1080;   // preview scale factor ≈ 0.2796
+const CHARS_PER_CARD = 520;   // soft char-count limit for auto-split
+
+const THEMES = [
+  {
+    id: 'minimal',
+    name: '极简',
+    defaultAccent: '#1a1a1a',
+    thumbHTML: `
+      <div class="tp tp-minimal">
+        <div class="ln"></div>
+        <div class="tx" style="background:#1a1a1a;width:65%;margin:4px 0 2px"></div>
+        <div class="tx" style="background:#1a1a1a;width:48%"></div>
+        <div class="tx" style="background:#aaa;width:38%;margin-top:4px"></div>
+        <div class="ln" style="margin-top:6px"></div>
+      </div>`
+  },
+  {
+    id: 'morandi',
+    name: '莫兰迪',
+    defaultAccent: '#8B7B6B',
+    thumbHTML: `
+      <div class="tp tp-morandi">
+        <div class="blk"></div>
+        <div class="body">
+          <div class="tx" style="width:70%"></div>
+          <div class="tx" style="width:55%"></div>
+          <div class="tx" style="width:40%;background:#9E9189"></div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'dark',
+    name: '暗黑',
+    defaultAccent: '#7C6AF7',
+    thumbHTML: `
+      <div class="tp tp-dark">
+        <div class="bar"></div>
+        <div class="tx" style="margin-top:5px;width:70%"></div>
+        <div class="tx" style="width:55%"></div>
+        <div class="tx-sm" style="width:45%"></div>
+        <div class="tx-sm" style="width:35%"></div>
+      </div>`
+  },
+  {
+    id: 'magazine',
+    name: '杂志',
+    defaultAccent: '#C8102E',
+    thumbHTML: `
+      <div class="tp tp-magazine">
+        <div class="red"></div>
+        <div class="body">
+          <div class="tx-lg"></div>
+          <div class="tx-lg" style="width:55%"></div>
+          <div class="tx" style="margin-top:4px"></div>
+          <div class="tx-sm"></div>
+        </div>
+      </div>`
+  }
+];
+
+/* ==============================================================
+   STATE
+============================================================== */
+const state = {
+  markdown: '',
+  theme: 'minimal',
+  fontSize: 28,
+  accentOverride: null,  // null = use theme default
+  cards: [],             // parsed card descriptors
+  selected: -1,          // selected card index
+};
+
+/* ==============================================================
+   MARKDOWN PARSING & PAGINATION
+============================================================== */
+function parseArticle(text) {
+  // Extract H1
+  const titleMatch = text.match(/^#\s+(.+)$/m);
+  const title = titleMatch ? titleMatch[1].trim() : '无标题';
+  let body = text.replace(/^#\s+.+\n?/m, '').trim();
+
+  // Extract subtitle: first short non-heading paragraph
+  let subtitle = '';
+  const subMatch = body.match(/^([^\n#>*\-\d].{0,100})\n\n/);
+  if (subMatch && subMatch[1].length <= 100) {
+    subtitle = subMatch[1].trim();
+    body = body.slice(subMatch[0].length).trim();
+  }
+
+  // Split by manual page breaks
+  const sections = body.split(/\n[ \t]*---[ \t]*\n/);
+
+  // Auto-paginate each section
+  const pages = [];
+  for (const sec of sections) {
+    if (!sec.trim()) continue;
+    pages.push(...autoSplit(sec.trim()));
+  }
+
+  return { title, subtitle, pages };
+}
+
+function autoSplit(markdown) {
+  const paras = markdown.split(/\n\n+/);
+  const pages = [];
+  let current = [];
+  let count = 0;
+
+  for (const para of paras) {
+    const len = para.length;
+    const isHeading = /^#{1,4}\s/.test(para);
+
+    if (count > 0 && (count + len > CHARS_PER_CARD || (isHeading && count > 80))) {
+      pages.push(current.join('\n\n'));
+      current = [para];
+      count = len;
+    } else {
+      current.push(para);
+      count += len;
+    }
+  }
+  if (current.length > 0) pages.push(current.join('\n\n'));
+  return pages.filter(p => p.trim());
+}
+
+function buildCards(parsed) {
+  const { title, subtitle, pages } = parsed;
+  const total = pages.length + 1; // +1 for cover
+  const cards = [
+    { type: 'cover', title, subtitle, page: 1, total }
+  ];
+  pages.forEach((md, i) => {
+    cards.push({
+      type: 'content',
+      title,
+      html: marked.parse(md),
+      page: i + 2,
+      total,
+    });
+  });
+  return cards;
+}
+
+/* ==============================================================
+   CARD HTML BUILDERS
+============================================================== */
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function buildCardEl(card, themeId, fontSize, accentOverride) {
+  const el = document.createElement('div');
+  el.className = `article-card theme-${themeId}`;
+  el.style.fontSize = fontSize + 'px';
+  if (accentOverride) el.style.setProperty('--c-accent', accentOverride);
+
+  el.innerHTML = card.type === 'cover'
+    ? buildCover(card, themeId)
+    : buildContent(card, themeId);
+
+  return el;
+}
+
+function buildCover(card, theme) {
+  const { title, subtitle, page, total } = card;
+
+  if (theme === 'minimal') return `
+    <div class="cover">
+      <div class="c-vline"></div>
+      <div class="c-tag">Article</div>
+      <div class="c-title">${esc(title)}</div>
+      ${subtitle ? `<div class="c-sub">${esc(subtitle)}</div>` : ''}
+      <div class="c-dash"></div>
+    </div>
+    <div class="c-pagenum">01 / ${pad(total)}</div>`;
+
+  if (theme === 'morandi') return `
+    <div class="cover">
+      <div class="c-top">
+        <div class="c-circles">
+          <div class="c-circ c-circ1"></div>
+          <div class="c-circ c-circ2"></div>
+        </div>
+        <div class="c-label">文章 · Article</div>
+      </div>
+      <div class="c-bottom">
+        <div>
+          <div class="c-title">${esc(title)}</div>
+          ${subtitle ? `<div class="c-sub">${esc(subtitle)}</div>` : ''}
+        </div>
+        <div class="c-meta">
+          <div class="c-meta-line"></div>
+          <div class="c-meta-text">共 ${total} 张卡片</div>
+        </div>
+      </div>
+    </div>`;
+
+  if (theme === 'dark') return `
+    <div class="cover">
+      <div class="c-glow"></div>
+      <div class="c-bar"></div>
+      <div class="c-label">Article</div>
+      <div class="c-content">
+        <div class="c-title">${esc(title)}</div>
+        ${subtitle ? `<div class="c-sub">${esc(subtitle)}</div>` : ''}
+      </div>
+      <div class="c-meta">
+        <span class="c-meta-text">共 ${total} 张卡片</span>
+        <span class="c-meta-tag">阅读</span>
+      </div>
+    </div>`;
+
+  if (theme === 'magazine') return `
+    <div class="cover">
+      <div class="c-topbar"></div>
+      <div class="c-hdr">
+        <span class="c-brand">Article</span>
+        <span class="c-issue">Vol.${pad(page)}</span>
+      </div>
+      <div class="c-main">
+        <div>
+          <div class="c-cat">
+            <div class="c-catbar"></div>
+            <div class="c-cattext">Featured</div>
+          </div>
+          <div class="c-title">${esc(title)}</div>
+          ${subtitle ? `<div class="c-sub">${esc(subtitle)}</div>` : ''}
+        </div>
+        <div class="c-bottom">
+          <span class="c-total">共 ${total} 张卡片</span>
+          <span class="c-numghost">01</span>
+        </div>
+      </div>
+    </div>`;
+
+  return '';
+}
+
+function buildContent(card, theme) {
+  const { title, html, page, total } = card;
+  const pg = pad(page);
+  const tt = pad(total);
+
+  if (theme === 'minimal') {
+    const dots = Array.from({ length: total }, (_, i) =>
+      `<div class="dot${i + 1 === page ? ' on' : ''}"></div>`
+    ).join('');
+    return `
+      <div class="content">
+        <div class="ct-head">
+          <span class="ct-head-title">${esc(title)}</span>
+          <span class="ct-head-page">${pg} / ${tt}</span>
+        </div>
+        <div class="ct-body">${html}</div>
+        <div class="ct-foot">${dots}</div>
+      </div>`;
+  }
+
+  if (theme === 'morandi') return `
+    <div class="content">
+      <div class="ct-head">
+        <span class="ct-head-title">${esc(title)}</span>
+        <span class="ct-head-page">${pg}</span>
+      </div>
+      <div class="ct-divider"></div>
+      <div class="ct-body">${html}</div>
+      <div class="ct-foot"><span class="ct-orn">· · ·</span></div>
+    </div>`;
+
+  if (theme === 'dark') return `
+    <div class="content">
+      <div class="ct-topbar"></div>
+      <div class="ct-head">
+        <span class="ct-head-title">${esc(title)}</span>
+        <span class="ct-head-page">${pg} / ${tt}</span>
+      </div>
+      <div class="ct-body">${html}</div>
+      <div class="ct-foot"><div class="ct-foot-bar"></div></div>
+    </div>`;
+
+  if (theme === 'magazine') return `
+    <div class="content">
+      <div class="ct-topbar"></div>
+      <div class="ct-head">
+        <span class="ct-head-title">${esc(title)}</span>
+        <span class="ct-head-page">${pg}</span>
+      </div>
+      <div class="ct-body">${html}</div>
+      <div class="ct-foot">
+        <span class="ct-foot-txt">共 ${tt} 张</span>
+        <div class="ct-foot-dot"></div>
+      </div>
+    </div>`;
+
+  return '';
+}
+
+/* ==============================================================
+   PREVIEW RENDERING
+============================================================== */
+function render() {
+  const grid = document.getElementById('cards-grid');
+  const renderArea = document.getElementById('render-area');
+  const cardInfo = document.getElementById('card-info');
+
+  grid.innerHTML = '';
+  renderArea.innerHTML = '';
+
+  const { cards, theme, fontSize, accentOverride, selected } = state;
+
+  if (!cards.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✦</div>
+        <div class="empty-title">粘贴 Markdown，自动生成卡片</div>
+        <div class="empty-desc">
+          支持 # 标题、**加粗**、列表、引用等<br>
+          用 <code style="background:#EEE;padding:1px 5px;border-radius:3px;font-size:11px">---</code> 手动控制分页
+        </div>
+      </div>`;
+    cardInfo.textContent = '在左侧粘贴文章内容';
+    return;
+  }
+
+  cardInfo.textContent = `共 ${cards.length} 张卡片`;
+
+  cards.forEach((card, i) => {
+    // Build real-size card for export
+    const cardEl = buildCardEl(card, theme, fontSize, accentOverride);
+    cardEl.id = `rc-${i}`;
+    renderArea.appendChild(cardEl);
+
+    // Build preview wrapper
+    const wrap = document.createElement('div');
+    wrap.className = `card-wrap${selected === i ? ' selected' : ''}`;
+    wrap.dataset.i = i;
+
+    const box = document.createElement('div');
+    box.className = 'card-scale-box';
+
+    const preview = cardEl.cloneNode(true);
+    preview.removeAttribute('id');
+    preview.style.transform = `scale(${SCALE})`;
+    preview.style.transformOrigin = 'top left';
+    preview.style.flexShrink = '0';
+
+    box.appendChild(preview);
+    wrap.appendChild(box);
+
+    const badge = document.createElement('div');
+    badge.className = 'card-badge';
+    badge.textContent = card.type === 'cover' ? `封面 · 1 / ${cards.length}` : `${i + 1} / ${cards.length}`;
+    wrap.appendChild(badge);
+
+    wrap.addEventListener('click', () => selectCard(i));
+    grid.appendChild(wrap);
+  });
+
+  updateBtns();
+}
+
+function selectCard(idx) {
+  state.selected = idx;
+  document.querySelectorAll('.card-wrap').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+  updateBtns();
+}
+
+function updateBtns() {
+  document.getElementById('btn-png').disabled = state.selected < 0 || !state.cards.length;
+  document.getElementById('btn-zip').disabled = !state.cards.length;
+}
+
+/* ==============================================================
+   EXPORT
+============================================================== */
+async function captureCard(idx) {
+  const el = document.getElementById(`rc-${idx}`);
+  return html2canvas(el, {
+    width: CARD_W,
+    height: CARD_H,
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    logging: false,
+    backgroundColor: null,
+  });
+}
+
+async function exportPNG() {
+  if (state.selected < 0) return;
+  showLoading('正在渲染图片…');
+  try {
+    const canvas = await captureCard(state.selected);
+    canvas.toBlob(blob => {
+      const name = `卡片-${pad(state.selected + 1)}-${safeName(state.cards[0].title)}.png`;
+      saveAs(blob, name);
+      hideLoading();
+    }, 'image/png');
+  } catch (e) {
+    hideLoading();
+    alert('导出失败：' + e.message);
+  }
+}
+
+async function exportZIP() {
+  if (!state.cards.length) return;
+  const zip = new JSZip();
+  const title = safeName(state.cards[0].title);
+
+  for (let i = 0; i < state.cards.length; i++) {
+    showLoading(`正在处理第 ${i + 1} / ${state.cards.length} 张…`);
+    const canvas = await captureCard(i);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    const type = state.cards[i].type === 'cover' ? '封面' : '内容';
+    zip.file(`${pad(i + 1)}-${type}.png`, blob);
+  }
+
+  showLoading('正在生成 ZIP…');
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  saveAs(zipBlob, `${title}-卡片集.zip`);
+  hideLoading();
+}
+
+function safeName(s) { return s.replace(/[\/\\:*?"<>|]/g, '-').slice(0, 36); }
+function showLoading(t) { document.getElementById('loading-overlay').classList.add('show'); document.getElementById('loading-text').textContent = t; }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+/* ==============================================================
+   THEME GRID
+============================================================== */
+function initThemes() {
+  const grid = document.getElementById('theme-grid');
+  THEMES.forEach(th => {
+    const btn = document.createElement('button');
+    btn.className = `theme-btn${state.theme === th.id ? ' active' : ''}`;
+    btn.dataset.id = th.id;
+    btn.innerHTML = `<div class="theme-thumb">${th.thumbHTML}</div><span class="theme-name">${th.name}</span>`;
+    btn.addEventListener('click', () => {
+      state.theme = th.id;
+      // Reset accent only if user hasn't customised it
+      if (!state.accentOverride) {
+        document.getElementById('pk-accent').value = th.defaultAccent;
+        document.getElementById('val-accent').textContent = th.defaultAccent;
+      }
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      scheduleRefresh();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+/* ==============================================================
+   INIT
+============================================================== */
+let timer = null;
+function scheduleRefresh(delay = 280) {
+  clearTimeout(timer);
+  timer = setTimeout(refresh, delay);
+}
+
+function refresh() {
+  const text = state.markdown.trim();
+  if (!text) {
+    state.cards = [];
+    state.selected = -1;
+    render();
+    return;
+  }
+  const parsed = parseArticle(text);
+  state.cards = buildCards(parsed);
+  if (state.selected >= state.cards.length) state.selected = -1;
+  render();
+}
+
+function init() {
+  // Configure marked
+  marked.setOptions({ breaks: true, gfm: true });
+
+  // Theme buttons
+  initThemes();
+
+  // Editor
+  const editor = document.getElementById('editor');
+  editor.addEventListener('input', () => {
+    state.markdown = editor.value;
+    scheduleRefresh();
+  });
+
+  // Font size slider
+  const slFont = document.getElementById('sl-font');
+  const valFont = document.getElementById('val-font');
+  slFont.addEventListener('input', () => {
+    state.fontSize = +slFont.value;
+    valFont.textContent = slFont.value + 'px';
+    scheduleRefresh(180);
+  });
+
+  // Accent color picker
+  const pkAccent = document.getElementById('pk-accent');
+  const valAccent = document.getElementById('val-accent');
+  pkAccent.value = THEMES[0].defaultAccent;
+
+  pkAccent.addEventListener('input', () => {
+    state.accentOverride = pkAccent.value;
+    valAccent.textContent = pkAccent.value;
+    scheduleRefresh(180);
+  });
+
+  // Export buttons
+  document.getElementById('btn-png').addEventListener('click', exportPNG);
+  document.getElementById('btn-zip').addEventListener('click', exportZIP);
+
+  // Load demo article
+  editor.value = DEMO;
+  state.markdown = DEMO;
+  refresh();
+}
+
+/* ==============================================================
+   DEMO CONTENT
+============================================================== */
+const DEMO = `# 专注力的艺术
+
+在这个信息爆炸的时代，专注力已成为最稀缺的资源。每当我们打开手机，无数的通知、动态和消息正等待着分散我们的注意力。
+
+## 为什么专注如此重要
+
+**深度工作**（Deep Work）这一概念由 Cal Newport 提出，指的是在无干扰状态下进行的高认知要求任务。这种能力正在变得越来越罕见，与此同时，它在经济上的价值也越来越高。
+
+> 能够进行深度工作的人，将在未来占据真正的优势。
+
+---
+
+## 如何培养专注力
+
+1. **设定专注时间块** — 每天固定一段时间用于深度工作，屏蔽一切干扰
+2. **消除数字干扰** — 关闭不必要的通知，手机放进抽屉
+3. **建立仪式感** — 固定的时间、地点和流程，帮助大脑快速进入专注状态
+4. **循序渐进** — 从每天 25 分钟开始，逐步延长
+
+当我们开始有意识地训练专注力时，不仅提高了工作效率，更重要的是，我们重新夺回了对自己时间和注意力的掌控权。
+
+---
+
+## 从今天开始行动
+
+改变不需要是巨大的。从每天 25 分钟的专注练习开始，你会发现工作质量和生活满意度都在悄然改变。
+
+专注力是可以训练的肌肉，每一次抵抗分心的尝试，都是在让它变得更加强大。
+`;
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
