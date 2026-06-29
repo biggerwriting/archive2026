@@ -25,32 +25,26 @@
     return audioCtx;
   }
 
-  // ── WebAudioFont 钢琴（懒加载）──────────────────────────────────
+  // ── WebAudioFont 钢琴初始化 ───────────────────────────────────
+  // webaudiofont-player.js 和 piano.js 已通过 manifest content_scripts
+  // 静态加载到本 isolated world，WebAudioFontPlayer 和
+  // _tone_0000_Aspirin_sf2_file 直接在此作用域可用。
   let pianoPlayer = null;
   let pianoPreset = null;
-  let pianoLoading = false;
+  let pianoReady = false;
 
-  function loadPiano() {
-    if (pianoPlayer || pianoLoading) return;
-    pianoLoading = true;
-
-    // 动态注入 webaudiofont-player.js
-    const playerScript = document.createElement('script');
-    playerScript.src = chrome.runtime.getURL('assets/piano/webaudiofont-player.js');
-    playerScript.onload = () => {
-      // 动态注入 piano.js（音色数据）
-      const presetScript = document.createElement('script');
-      presetScript.src = chrome.runtime.getURL('assets/piano/piano.js');
-      presetScript.onload = () => {
-        const ctx = getAudioCtx();
-        pianoPlayer = new window.WebAudioFontPlayer();
-        pianoPreset = window._tone_0000_Aspirin_sf2_file;
-        pianoPlayer.loader.decodeAfterLoading(ctx, '_tone_0000_Aspirin_sf2_file');
-        pianoLoading = false;
-      };
-      document.head.appendChild(presetScript);
-    };
-    document.head.appendChild(playerScript);
+  function initPiano() {
+    if (pianoReady) return;
+    try {
+      const ctx = getAudioCtx();
+      /* global WebAudioFontPlayer, _tone_0000_Aspirin_sf2_file */
+      pianoPlayer = new WebAudioFontPlayer();
+      pianoPreset = _tone_0000_Aspirin_sf2_file;
+      pianoPlayer.loader.decodeAfterLoading(ctx, '_tone_0000_Aspirin_sf2_file');
+      pianoReady = true;
+    } catch (e) {
+      console.error('[KeyboardSound] Failed to init piano:', e);
+    }
   }
 
   // ── 打字机音效（预加载 AudioBuffer）────────────────────────────
@@ -76,7 +70,7 @@
 
   // ── 播放函数 ────────────────────────────────────────────────────
   function playPiano(pitch) {
-    if (!pianoPlayer || !pianoPreset) return;
+    if (!pianoReady || !pianoPlayer || !pianoPreset) return;
     const ctx = getAudioCtx();
     gainNode.gain.value = state.volume;
     pianoPlayer.queueWaveTable(ctx, gainNode, pianoPreset, 0, pitch, 1.5);
@@ -118,8 +112,8 @@
     if (!isTypingTarget(document.activeElement)) return;
 
     if (state.soundMode === 'piano') {
-      // 懒加载钢琴资源
-      if (!pianoPlayer && !pianoLoading) loadPiano();
+      // 首次按键时初始化钢琴（piano.js 已静态加载，同步初始化）
+      if (!pianoReady) initPiano();
 
       const { pitch, nextState } = getNoteForKey(e.key, state.noteMode, { seqIndex: state.seqIndex });
       state.seqIndex = nextState.seqIndex;
