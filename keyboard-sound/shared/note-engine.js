@@ -29,6 +29,14 @@ const DIGIT_SEMITONES = [0,2,4,5,7,9,11,12,14,16];
   DIGIT_TO_PITCH[ch] = DIGIT_BASE + DIGIT_SEMITONES[i];
 });
 
+// 过滤修饰键和功能键（模块顶层，避免每次按键重建）
+const IGNORED_KEYS = new Set([
+  'shift','control','alt','meta','capslock','tab','escape',
+  'arrowup','arrowdown','arrowleft','arrowright',
+  'home','end','pageup','pagedown','insert','delete',
+  'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'
+]);
+
 /**
  * getNoteForKey — 核心接口
  *
@@ -40,16 +48,10 @@ const DIGIT_SEMITONES = [0,2,4,5,7,9,11,12,14,16];
  *   nextState: 更新后的状态（sequential 模式会递增 seqIndex）
  */
 function getNoteForKey(keyValue, mode, state) {
+  state = state || {};
   const k = keyValue.toLowerCase();
   const nextState = { ...state };
 
-  // 过滤修饰键和功能键
-  const IGNORED_KEYS = new Set([
-    'shift','control','alt','meta','capslock','tab','escape',
-    'arrowup','arrowdown','arrowleft','arrowright',
-    'home','end','pageup','pagedown','insert','delete',
-    'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'
-  ]);
   if (IGNORED_KEYS.has(k)) {
     return { pitch: null, nextState };
   }
@@ -85,4 +87,9 @@ function getNoteForKey(keyValue, mode, state) {
 // 导出（content script 环境下直接挂到 window，测试环境支持 module.exports）
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { getNoteForKey, C_MAJOR_SCALE, ALPHA_TO_PITCH, DIGIT_TO_PITCH };
+}
+
+// 浏览器/Content Script 环境：挂载到全局
+if (typeof window !== 'undefined') {
+  window.getNoteForKey = getNoteForKey;
 }
