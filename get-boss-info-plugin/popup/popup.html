@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>BOSS职位收集器</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- ── 顶栏 ── -->
+  <header class="header">
+    <span class="header-icon">💼</span>
+    <span class="header-title">BOSS职位收集器</span>
+    <span class="header-count" id="totalCount">0 条</span>
+  </header>
+
+  <!-- ── 当前检测到的职位 ── -->
+  <section class="section">
+    <div class="section-label">当前检测到的职位</div>
+    <div class="current-job-card" id="currentJobCard">
+      <div class="current-job-empty" id="currentEmpty">
+        <span>🔍</span>
+        <span>请在 BOSS 直聘打开一个职位详情</span>
+      </div>
+      <div class="current-job-info hidden" id="currentInfo">
+        <div class="job-title" id="jobTitle">—</div>
+        <div class="job-meta" id="jobMeta">—</div>
+        <div class="job-tags" id="jobTags"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btnSave" disabled>
+      💾 保存此职位
+    </button>
+    <div class="save-tip hidden" id="saveTip">✅ 已保存！</div>
+    <div class="save-tip error hidden" id="dupTip">⚠️ 该职位已保存过</div>
+  </section>
+
+  <!-- ── 已保存列表 ── -->
+  <section class="section">
+    <div class="section-label">已保存职位</div>
+    <div class="job-list" id="jobList">
+      <div class="list-empty" id="listEmpty">暂无保存的职位</div>
+    </div>
+  </section>
+
+  <!-- ── 底部操作栏 ── -->
+  <footer class="footer">
+    <button class="btn btn-export" id="btnExport" disabled>
+      📊 导出 CSV
+    </button>
+    <button class="btn btn-clear" id="btnClear" disabled>
+      🗑 清空
+    </button>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+/* ── Reset & Base ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 360px;
+  min-height: 200px;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  color: #2c2c2c;
+  background: #f7f8fa;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.header-icon {
+  font-size: 18px;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex: 1;
+}
+
+.header-count {
+  font-size: 12px;
+  color: #888;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ── Section ── */
+.section {
+  padding: 10px 14px;
+  background: #fff;
+  margin-top: 6px;
+}
+
+.section-label {
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* ── 当前职位卡片 ── */
+.current-job-card {
+  background: #f9f9f9;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.current-job-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  color: #bbb;
+  font-size: 12px;
+  text-align: center;
+}
+
+.current-job-info {
+  width: 100%;
+}
+
+.job-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-meta {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.job-tags {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  background: #e8f4ff;
+  color: #3a7bd5;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 14px;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  width: 100%;
+  background: #3a7bd5;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: #2d6abf;
+}
+
+.save-tip {
+  text-align: center;
+  font-size: 12px;
+  color: #22aa66;
+  margin-top: 6px;
+}
+
+.save-tip.error {
+  color: #e06c00;
+}
+
+/* ── 职位列表 ── */
+.job-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.list-empty {
+  color: #bbb;
+  font-size: 12px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.job-item {
+  display: flex;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
+}
+
+.job-item:last-child {
+  border-bottom: none;
+}
+
+.job-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-item-sub {
+  font-size: 11px;
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-item-del {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.job-item-del:hover {
+  color: #e05252;
+  background: #fff0f0;
+}
+
+/* ── Footer ── */
+.footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #eee;
+  margin-top: 6px;
+}
+
+.btn-export {
+  flex: 1;
+  background: #22aa66;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-export:not(:disabled):hover {
+  background: #1a9257;
+}
+
+.btn-clear {
+  background: #f5f5f5;
+  color: #888;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-clear:not(:disabled):hover {
+  background: #ffe8e8;
+  color: #e05252;
+  border-color: #e05252;
+}
